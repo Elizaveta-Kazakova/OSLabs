@@ -36,8 +36,7 @@ int main(int argc, char *argv[]) {
 	fprintf(stderr, "%s: creating thread %s\n", argv[0], buf);
 	exit(1);
     }
-    void **res = NULL;
-    err = pthread_join(tid, res);
+    err = pthread_join(tid, NULL);
     if (err) {
 	char buf[BUF_SIZE];
 	strerror_r(err, buf, sizeof buf);
