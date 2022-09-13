@@ -5,8 +5,8 @@
 
 #define NUM_OF_STR 10
 #define BUF_SIZE 1024
-#define CHILD_MESSAGE "Child proccess"
-#define PARENT_MESSAGE "Parent proccess"
+#define CHILD_MESSAGE "New thread"
+#define PARENT_MESSAGE "Main thread"
 
 struct print_args {
         char *message;
