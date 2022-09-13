@@ -46,5 +46,6 @@ int main(int argc, char *argv[]) {
     args_for_parent.message = PARENT_MESSAGE;
     args_for_parent.num_of_str = NUM_OF_STR;
     print_n_str((void *)&args_for_parent);
+    return 0;
 }
 
