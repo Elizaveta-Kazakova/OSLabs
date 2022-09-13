@@ -21,17 +21,17 @@ void *print_n_str(void *arg) {
     return NULL;
 }
 
-int main(int argc, char *argv[]) {
-    int err;
+int main() {
+    int return_code;
     pthread_t tid;
     struct print_args args_for_child;
     args_for_child.message = CHILD_MESSAGE;
     args_for_child.num_of_str = NUM_OF_STR;
-    err = pthread_create(&tid, NULL, &print_n_str, (void *)&args_for_child);
-    if (err) {
+    return_code = pthread_create(&tid, NULL, &print_n_str, (void *)&args_for_child);
+    if (return_code) {
         char buf[BUF_SIZE];
-	strerror_r(err, buf, sizeof buf);
-	fprintf(stderr, "%s: creating thread : %s\n", argv[0], buf); 
+	strerror_r(return_code, buf, sizeof buf);
+	fprintf(stderr, "creating thread : %s\n", buf); 
         exit(1);
     }
     struct print_args args_for_parent;
