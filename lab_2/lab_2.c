@@ -34,7 +34,6 @@ int main() {
         char buf[BUF_SIZE];
 	strerror_r(return_code, buf, sizeof buf);
 	fprintf(stderr, "creating thread %s\n", buf);
-	exit(1);
     }
     return_code = pthread_join(thread_id, NULL);
     if (return_code) {
