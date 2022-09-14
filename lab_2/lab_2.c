@@ -25,18 +25,18 @@ void *print_n_str(void *arg) {
 
 int main() {
     int return_code;
-    pthread_t tid;
+    pthread_t thread_id;
     struct print_args args_for_child;
     args_for_child.message = CHILD_MESSAGE;
     args_for_child.num_of_str = NUM_OF_STR;
-    return_code = pthread_create(&tid, NULL, &print_n_str, (void *)&args_for_child);
+    return_code = pthread_create(&thread_id, NULL, &print_n_str, (void *)&args_for_child);
     if (return_code) {
         char buf[BUF_SIZE];
 	strerror_r(return_code, buf, sizeof buf);
 	fprintf(stderr, "creating thread %s\n", buf);
 	exit(1);
     }
-    return_code = pthread_join(tid, NULL);
+    return_code = pthread_join(thread_id, NULL);
     if (return_code) {
 	char buf[BUF_SIZE];
 	strerror_r(return_code, buf, sizeof buf);
