@@ -34,17 +34,19 @@ int main() {
         char buf[BUF_SIZE];
 	strerror_r(return_code, buf, sizeof buf);
 	fprintf(stderr, "creating thread %s\n", buf);
+        exit(EXIT_FAILURE);
     }
     return_code = pthread_join(thread_id, NULL);
     if (return_code) {
 	char buf[BUF_SIZE];
 	strerror_r(return_code, buf, sizeof buf);
 	fprintf(stderr, "joining thread : %s\n", buf);
+	exit(EXIT_FAILURE);
     }
     struct print_args args_for_parent;
     args_for_parent.message = PARENT_MESSAGE;
     args_for_parent.num_of_str = NUM_OF_STR;
     print_n_str((void *)&args_for_parent);
-    return 0;
+    exit(EXIT_SUCCESS);
 }
 

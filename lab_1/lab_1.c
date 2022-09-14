@@ -31,7 +31,8 @@ int main() {
     if (return_code) {
         char buf[BUF_SIZE];
 	strerror_r(return_code, buf, sizeof buf);
-	fprintf(stderr, "creating thread : %s\n", buf); 
+	fprintf(stderr, "creating thread : %s\n", buf);
+	exit(EXIT_FAILURE); 
     }
     struct print_args args_for_parent;
     args_for_parent.message = PARENT_MESSAGE;
