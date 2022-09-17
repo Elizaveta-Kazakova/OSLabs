@@ -5,6 +5,7 @@
 
 #define NUM_OF_STR 10
 #define BUF_SIZE 1024
+#define SUCCESS_CODE 0
 #define CHILD_MESSAGE "New thread"
 #define PARENT_MESSAGE "Main thread"
 
@@ -28,7 +29,7 @@ int main() {
     args_for_child.message = CHILD_MESSAGE;
     args_for_child.num_of_str = NUM_OF_STR;
     return_code = pthread_create(&thread_id, NULL, &print_n_str, (void *)&args_for_child);
-    if (return_code) {
+    if (return_code != SUCCESS_CODE) {
         char buf[BUF_SIZE];
 	strerror_r(return_code, buf, sizeof buf);
 	fprintf(stderr, "creating thread : %s\n", buf);
