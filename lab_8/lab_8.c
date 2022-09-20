@@ -1,12 +1,3 @@
-/* 
- * File:   pi_serial.c
- * Author: nd159473 (Nickolay Dalmatov, Sun Microsystems)
- * modified by Dmitry V Irtegov, NSU
- *
- * Created on March 20, 2007, 6:33 PM
- *
- */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
