@@ -19,8 +19,6 @@
 #define SUCCESS_CODE 0
 #define MAX_INVALID_ARG 0
 #define MESSAGE_FOR_INVALID_ARG "Please write number greater than 0"
-#define SUCCESS_CREATE 0
-#define ERROR_CREATE 1
 
 typedef struct partial_sum_args {
     int start_index;
