@@ -73,17 +73,25 @@ void print_error(int return_code, char *additional_message) {
     fprintf(stderr, "%s: %s\n", additional_message, buf);
 }
 
+int is_valid_input(int num_of_args, char *arg) {
+    if (num_of_args != NUM_OF_ARGS) {
+        printf(MESSAGE_FOR_INVALID_ARGS_NUM);
+	return ERROR_CODE;
+    }
+    int num_of_threads = atoi(arg);
+    if (num_of_threads <= MAX_INVALID_ARG || num_of_threads > MAX_NUM_OF_THREADS) {
+        printf(MESSAGE_FOR_INVALID_ARG);
+        return ERROR_CODE;
+    }
+    return SUCCESS_CODE;
+}
+
 int main(int argc, char **argv) {
     // read arg and check for validity
-    if (argc != NUM_OF_ARGS) {
-	printf(MESSAGE_FOR_INVALID_ARGS_NUM);
+    if (is_valid_input(argc, argv[INDEX_FOR_NUM_OF_THREADS]) != SUCCESS_CODE) {
 	exit(EXIT_SUCCESS);
     }
     int num_of_threads = atoi(argv[INDEX_FOR_NUM_OF_THREADS]);
-    if (num_of_threads <= MAX_INVALID_ARG || num_of_threads > MAX_NUM_OF_THREADS) {
-	printf(MESSAGE_FOR_INVALID_ARG);
-	exit(EXIT_SUCCESS);
-    }
     
     // allocation of memory
     pthread_t *threads_id = (pthread_t *)malloc(num_of_threads * sizeof(pthread_t));
