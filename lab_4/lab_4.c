@@ -51,6 +51,12 @@ int create_threads_for_partial_sum(int num_of_threads, pthread_t *threads_id, pa
     return SUCCESS_CODE;
 }
 
+void print_error(int return_code) {
+    char buf[BUF_SIZE];
+    strerror_r(return_code, buf, sizeof buf);
+    fprintf(stderr, "creating thread : %s\n", buf);
+}
+
 int main(int argc, char **argv) {
     // read arg and check for validity
     int num_of_threads = atoi(argv[INDEX_FOR_NUM_OF_THREADS]);
@@ -65,11 +71,9 @@ int main(int argc, char **argv) {
 
     // create threads and run functions
     int return_code = create_threads_for_partial_sum(num_of_threads, threads_id, threads_args); 
-    if (return_code != SUCCESS_CREATE) {
-	char buf[BUF_SIZE];
-            strerror_r(return_code, buf, sizeof buf);
-            fprintf(stderr, "creating thread : %s\n", buf);
-            exit(EXIT_FAILURE); 
+    if (return_code != SUCCESS_CODE) {
+	print_error(return_code);
+        exit(EXIT_FAILURE); 
     }
 
     double pi = 0;
@@ -78,9 +82,7 @@ int main(int argc, char **argv) {
     for (int thread_num = 0; thread_num < num_of_threads; ++thread_num) {
 	int return_code = pthread_join(threads_id[thread_num], NULL);
 	if (return_code != SUCCESS_CODE) {
-            char buf[BUF_SIZE];
-            strerror_r(return_code, buf, sizeof buf);
-            fprintf(stderr, "joining thread %d: %s\n", thread_num, buf);
+            print_error(return_code);
             exit(EXIT_FAILURE); 
         }
 	pi += threads_args[thread_num].result;
