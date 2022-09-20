@@ -17,8 +17,10 @@
 #define INDEX_FOR_NUM_OF_THREADS 1
 #define BUF_SIZE 1024
 #define SUCCESS_CODE 0
-#define INVALID_ARG 0
+#define MAX_INVALID_ARG 0
 #define MESSAGE_FOR_INVALID_ARG "Please write number greater than 0"
+#define SUCCESS_CREATE 0
+#define ERROR_CREATE 1
 
 typedef struct partial_sum_args {
     int start_index;
@@ -35,35 +37,41 @@ void *calc_partial_sum(void *arg) {
     }
     args->result = partial_sum;
     return NULL;
+}
 
+int create_threads_for_partial_sum(int num_of_threads, pthread_t *threads_id, partial_sum_args *threads_args) {
+    int iteration_num_for_thread = NUM_OF_STEPS / num_of_threads;
+    for (int thread_num = 0; thread_num < num_of_threads; ++thread_num) {
+        threads_args[thread_num].start_index = thread_num * iteration_num_for_thread;
+        threads_args[thread_num].end_index = threads_args[thread_num].start_index + iteration_num_for_thread;
+        int return_code = pthread_create(&threads_id[thread_num], 
+                                        NULL, &calc_partial_sum, (void *)&threads_args[thread_num]); 
+        if (return_code != SUCCESS_CODE) {
+            return return_code; 
+        }
+    }
+    return SUCCESS_CODE;
 }
 
 int main(int argc, char **argv) {
     // read arg and check for validity
     int num_of_threads = atoi(argv[INDEX_FOR_NUM_OF_THREADS]);
-    if (num_of_threads <= 0) {
+    if (num_of_threads <= MAX_INVALID_ARG) {
 	printf(MESSAGE_FOR_INVALID_ARG);
 	exit(EXIT_SUCCESS);
     }
-    int iteration_num_for_thread = NUM_OF_STEPS / num_of_threads;
    
     // allocation of memory
     pthread_t *threads_id = (pthread_t *)malloc(num_of_threads * sizeof(pthread_t));
     partial_sum_args *threads_args = (partial_sum_args *)malloc(num_of_threads * sizeof(partial_sum_args));
 
     // create threads and run functions
-    for (int thread_num = 0; thread_num < num_of_threads; ++thread_num) {
-	threads_args[thread_num].start_index = thread_num * iteration_num_for_thread;
-	threads_args[thread_num].end_index = threads_args[thread_num].start_index + iteration_num_for_thread;
-	int return_code;
-	return_code = pthread_create(&threads_id[thread_num], 
-					NULL, &calc_partial_sum, (void *)&threads_args[thread_num]); 
-	if (return_code != SUCCESS_CODE) {
-	    char buf[BUF_SIZE];
-	    strerror_r(return_code, buf, sizeof buf);
-	    fprintf(stderr, "creating thread %d: %s\n", thread_num, buf);
-	    exit(EXIT_FAILURE); 
-        }
+    int return_code = create_threads_for_partial_sum(num_of_threads, threads_id, threads_args); 
+    if (return_code != SUCCESS_CREATE) {
+	char buf[BUF_SIZE];
+            strerror_r(return_code, buf, sizeof buf);
+            fprintf(stderr, "creating thread : %s\n", buf);
+            exit(EXIT_FAILURE); 
     }
 
     double pi = 0;
@@ -83,6 +91,7 @@ int main(int argc, char **argv) {
     // free memory
     free(threads_id);
     free(threads_args);    
+
     pi = pi * 4.0;
     printf("pi done - %.15g \n", pi);    
     
