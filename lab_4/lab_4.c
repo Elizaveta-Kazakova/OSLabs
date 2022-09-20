@@ -37,11 +37,19 @@ void *calc_partial_sum(void *arg) {
     return NULL;
 }
 
+int convert_index_to_number(int index) {
+    return index + 1;
+}
+
 int create_threads_for_partial_sum(int num_of_threads, pthread_t *threads_id, partial_sum_args *threads_args) {
     int iteration_num_for_thread = NUM_OF_STEPS / num_of_threads;
+    int additional_iterations = NUM_OF_STEPS % num_of_threads;
     for (int thread_num = 0; thread_num < num_of_threads; ++thread_num) {
-        threads_args[thread_num].start_index = thread_num * iteration_num_for_thread;
+        threads_args[thread_num].start_index = thread_num * iteration_num_for_thread; 
         threads_args[thread_num].end_index = threads_args[thread_num].start_index + iteration_num_for_thread;
+	if (convert_index_to_number(thread_num) == num_of_threads) { 
+             threads_args[thread_num].end_index += additional_iterations;
+	}
         int return_code = pthread_create(&threads_id[thread_num], 
                                         NULL, &calc_partial_sum, (void *)&threads_args[thread_num]); 
         if (return_code != SUCCESS_CODE) {
@@ -95,6 +103,6 @@ int main(int argc, char **argv) {
     pi = pi * 4.0;
     printf("pi done - %.15g \n", pi);    
     
-    return (EXIT_SUCCESS);
+    exit(EXIT_SUCCESS);
 }
 
