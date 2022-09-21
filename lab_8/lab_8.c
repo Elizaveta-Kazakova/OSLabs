@@ -8,22 +8,24 @@
 #define BUF_SIZE 1024
 #define SUCCESS_CODE 0
 #define ERROR_CODE 1
-#define MAX_INVALID_ARG 0
-#define MESSAGE_FOR_INVALID_ARG "Please write number greater than 0 and smaller than 30001\n"
+#define MIN_NUM_OF_THREADS 1
+#define MESSAGE_FOR_INVALID_RANGE_OF_ARG "Please write number greater than 0 and smaller than 30001\n"
 #define NUM_OF_ARGS 2
 #define MESSAGE_FOR_INVALID_ARGS_NUM "Please write one argument\n"
 #define MAX_NUM_OF_THREADS 30000
+#define BASE 10
+#define MESSAGE_FOR_INVALID_ARG "Please write an integer\n"
 
 typedef struct partial_sum_args {
-    int start_index;
-    int end_index;
+    long start_index;
+    long end_index;
     double result;
 } partial_sum_args;
 
 void *calc_partial_sum(void *arg) {
     partial_sum_args *args = (partial_sum_args *)arg;
     double partial_sum = 0;
-    for (int i = args->start_index; i < args->end_index; ++i) {
+    for (long i = args->start_index; i < args->end_index; ++i) {
         partial_sum += 1.0 / (i * 4.0 + 1.0);
         partial_sum -= 1.0 / (i * 4.0 + 3.0);
     }
@@ -31,13 +33,9 @@ void *calc_partial_sum(void *arg) {
     return NULL;
 }
 
-int convert_index_to_number(int index) {
-    return index + 1;
-}
-
-int join_threads_with_partial_sum(int num_of_threads, pthread_t *threads_id,
+int join_threads_with_partial_sum(long num_of_threads, pthread_t *threads_id,
 						 partial_sum_args *threads_args, double *sum) {
-    for (int thread_num = 0; thread_num < num_of_threads; ++thread_num) {
+    for (long thread_num = 0; thread_num < num_of_threads; ++thread_num) {
         int return_code = pthread_join(threads_id[thread_num], NULL);
         if (return_code != SUCCESS_CODE) {
     	    return return_code;
@@ -47,11 +45,11 @@ int join_threads_with_partial_sum(int num_of_threads, pthread_t *threads_id,
     return SUCCESS_CODE;
 }
 
-int create_threads_for_partial_sum(int num_of_threads, pthread_t *threads_id,
+int create_threads_for_partial_sum(long num_of_threads, pthread_t *threads_id,
 						 partial_sum_args *threads_args) {
-    int iteration_num_for_thread = NUM_OF_STEPS / num_of_threads;
-    int num_of_additional_iterations = NUM_OF_STEPS % num_of_threads;
-    for (int thread_num = 0; thread_num < num_of_threads; ++thread_num) {
+    long iteration_num_for_thread = NUM_OF_STEPS / num_of_threads;
+    long num_of_additional_iterations = NUM_OF_STEPS % num_of_threads;
+    for (long thread_num = 0; thread_num < num_of_threads; ++thread_num) {
         threads_args[thread_num].start_index = thread_num * iteration_num_for_thread; 
         threads_args[thread_num].end_index = threads_args[thread_num].start_index
 								 + iteration_num_for_thread;
@@ -78,9 +76,14 @@ int is_valid_input(int num_of_args, char *arg) {
         printf(MESSAGE_FOR_INVALID_ARGS_NUM);
 	return ERROR_CODE;
     }
-    int num_of_threads = atoi(arg);
-    if (num_of_threads <= MAX_INVALID_ARG || num_of_threads > MAX_NUM_OF_THREADS) {
-        printf(MESSAGE_FOR_INVALID_ARG);
+    char *endptr;
+    int num_of_threads = strtol(arg, &endptr, BASE);
+    if (*endptr != '\0') {
+	printf(MESSAGE_FOR_INVALID_ARG);
+	return ERROR_CODE;
+    }
+    if (num_of_threads <= MIN_NUM_OF_THREADS || num_of_threads > MAX_NUM_OF_THREADS) {
+        printf(MESSAGE_FOR_INVALID_RANGE_OF_ARG);
         return ERROR_CODE;
     }
     return SUCCESS_CODE;
@@ -91,7 +94,7 @@ int main(int argc, char **argv) {
     if (is_valid_input(argc, argv[INDEX_FOR_NUM_OF_THREADS]) != SUCCESS_CODE) {
 	exit(EXIT_SUCCESS);
     }
-    int num_of_threads = atoi(argv[INDEX_FOR_NUM_OF_THREADS]);
+    long num_of_threads = strtol(argv[INDEX_FOR_NUM_OF_THREADS], NULL, BASE);
     
     // allocation of memory
     pthread_t *threads_id = (pthread_t *)malloc(num_of_threads * sizeof(pthread_t));
