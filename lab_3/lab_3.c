@@ -31,7 +31,7 @@ int main() {
 	{"Thread number 4, line 1\n", "Thread number 4, line 2\n", "Thread number 4, line 3\n", NULL}
 	};
     for (int thread_num = 0; thread_num < NUM_OF_THREADS; ++thread_num) {
-	return_code = pthread_create(&threads_id[thread_num], NULL, &print_message, &messages[thread_num]);
+	return_code = pthread_create(&threads_id[thread_num], NULL, print_message, &messages[thread_num]);
     	if (return_code != SUCCESS_CODE) {
             print_error(return_code, "creating thread")
     }
