@@ -15,6 +15,12 @@ void *print_message(void *arg) {
     return NULL;
 }
 
+void print_error(int return_code, char *additional_message) {
+    char buf[BUF_SIZE];
+    strerror_r(return_code, buf, sizeof buf);
+    fprintf(stderr, "%s: %s\n", additional_message, buf);
+}
+
 int main() {
     int return_code;
     pthread_t threads_id[NUM_OF_THREADS];
@@ -27,18 +33,12 @@ int main() {
     for (int thread_num = 0; thread_num < NUM_OF_THREADS; ++thread_num) {
 	return_code = pthread_create(&threads_id[thread_num], NULL, &print_message, &messages[thread_num]);
     	if (return_code != SUCCESS_CODE) {
-            char buf[BUF_SIZE];
-  	    strerror_r(return_code, buf, sizeof buf);
-	    fprintf(stderr, "creating thread %d: %s\n", thread_num, buf);
-    	}
+            print_error(return_code, "creating thread")
     }
     for (int thread_num = 0; thread_num < NUM_OF_THREADS; ++thread_num) {
 	return_code =  pthread_join(threads_id[thread_num], NULL);
 	if (return_code != SUCCESS_CODE) {
-            char buf[BUF_SIZE];
-            strerror_r(return_code, buf, sizeof buf);
-            fprintf(stderr, "joining thread %d: %s\n", thread_num, buf);
-        }
+            print_error(return_code, "joining thread");
     }
     pthread_exit(NULL);
 }
