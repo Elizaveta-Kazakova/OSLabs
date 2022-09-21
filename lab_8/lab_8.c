@@ -15,6 +15,7 @@
 #define MAX_NUM_OF_THREADS 30000
 #define BASE 10
 #define MESSAGE_FOR_INVALID_ARG "Please write an integer\n"
+#define TERMINATING_SYMBOL_OF_STR '\0'
 
 typedef struct partial_sum_args {
     long start_index;
@@ -78,7 +79,7 @@ int is_valid_input(int num_of_args, char *arg) {
     }
     char *endptr;
     int num_of_threads = strtol(arg, &endptr, BASE);
-    if (*endptr != '\0') {
+    if (*endptr != TERMINATING_SYMBOL_OF_STR) {
 	printf(MESSAGE_FOR_INVALID_ARG);
 	return ERROR_CODE;
     }
