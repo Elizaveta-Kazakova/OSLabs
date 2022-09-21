@@ -23,6 +23,11 @@ void *print_n_str(void *arg) {
     return NULL;
 }
 
+void print_error(int return_code, char *additional_message) {
+    char buf[BUF_SIZE];
+    strerror_r(return_code, buf, sizeof buf);
+    fprintf(stderr, "%s: %s\n", additional_message, buf);
+}
 
 int main() {
     int return_code;
@@ -32,16 +37,12 @@ int main() {
     args_for_child.num_of_str = NUM_OF_STR;
     return_code = pthread_create(&thread_id, NULL, print_n_str, (void *)&args_for_child);
     if (return_code != SUCCESS_CODE) {
-        char buf[BUF_SIZE];
-	strerror_r(return_code, buf, sizeof buf);
-	fprintf(stderr, "creating thread %s\n", buf);
+        print_error(return_code, "creating thread");
         exit(EXIT_FAILURE);
     }
     return_code = pthread_join(thread_id, NULL);
     if (return_code != SUCCESS_CODE) {
-	char buf[BUF_SIZE];
-	strerror_r(return_code, buf, sizeof buf);
-	fprintf(stderr, "joining thread : %s\n", buf);
+	print_error(return_code, "joining thread");
 	exit(EXIT_FAILURE);
     }
     struct print_args args_for_parent;
