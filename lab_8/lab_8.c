@@ -57,7 +57,7 @@ int create_threads_for_partial_sum(long num_of_threads, pthread_t *threads_id,
              threads_args[thread_num].end_index += 1;
 	}
         int return_code = pthread_create(&threads_id[thread_num], 
-                               NULL, &calc_partial_sum, (void *)&threads_args[thread_num]); 
+                               NULL, calc_partial_sum, (void *)&threads_args[thread_num]); 
 	if (return_code != SUCCESS_CODE) {
             return return_code; 
         }
