@@ -55,7 +55,7 @@ int create_threads_for_partial_sum(int num_of_threads, pthread_t *threads_id,
         threads_args[thread_num].end_index = threads_args[thread_num].start_index
 								 + iteration_num_for_thread;
 	if (thread_num < num_of_additional_iterations) { 
-             threads_args[thread_num].end_index += 1;
+             ++threads_args[thread_num].end_index;
 	}
         int return_code = pthread_create(&threads_id[thread_num], 
                                NULL, calc_partial_sum, (void *)&threads_args[thread_num]); 
@@ -83,10 +83,44 @@ int is_valid_input(int num_of_args, char *arg) {
 	printf(MESSAGE_FOR_INVALID_ARG);
 	return ERROR_CODE;
     }
-    if (num_of_threads <= MIN_NUM_OF_THREADS || num_of_threads > MAX_NUM_OF_THREADS) {
+    if (num_of_threads < MIN_NUM_OF_THREADS || num_of_threads > MAX_NUM_OF_THREADS) {
         printf(MESSAGE_FOR_INVALID_RANGE_OF_ARG);
         return ERROR_CODE;
     }
+    return SUCCESS_CODE;
+}
+
+int calculate_pi(int num_of_threads, double *pi) {
+    // allocation of memory
+    pthread_t *threads_id = (pthread_t *)malloc(num_of_threads * sizeof(pthread_t));
+    partial_sum_args *threads_args = (partial_sum_args *)malloc(num_of_threads
+                                                                 * sizeof(partial_sum_args));
+    if (threads_id == NULL || threads_args == NULL) {
+        perror("malloc error ");
+        return ERROR_CODE;
+    }   
+
+    // create threads and run functions
+    int return_code = create_threads_for_partial_sum(num_of_threads, threads_id, threads_args); 
+    if (return_code != SUCCESS_CODE) {
+        print_error(return_code, "creating thread");
+        return ERROR_CODE; 
+    }
+
+    *pi = 0;
+   
+    // join threads and sum partial sums
+    return_code = join_threads_with_partial_sum(num_of_threads, threads_id, threads_args, pi);
+    if (return_code != SUCCESS_CODE) {
+        print_error(return_code, "join thread");
+        return ERROR_CODE; 
+    }
+
+    // free memory
+    free(threads_id);
+    free(threads_args);    
+
+    *pi = *pi * 4.0;
     return SUCCESS_CODE;
 }
 
@@ -97,36 +131,12 @@ int main(int argc, char **argv) {
     }
     int num_of_threads = (int)strtol(argv[INDEX_FOR_NUM_OF_THREADS], NULL, BASE);
     
-    // allocation of memory
-    pthread_t *threads_id = (pthread_t *)malloc(num_of_threads * sizeof(pthread_t));
-    partial_sum_args *threads_args = (partial_sum_args *)malloc(num_of_threads
-								 * sizeof(partial_sum_args));
-    if (threads_id == NULL || threads_args == NULL) {
-	perror("malloc error ");
-	exit(EXIT_FAILURE);
-    } 	
-
-    // create threads and run functions
-    int return_code = create_threads_for_partial_sum(num_of_threads, threads_id, threads_args); 
-    if (return_code != SUCCESS_CODE) {
-	print_error(return_code, "creating thread");
-        exit(EXIT_FAILURE); 
-    }
-
     double pi = 0;
-   
-    // join threads and sum partial sums
-    return_code = join_threads_with_partial_sum(num_of_threads, threads_id, threads_args, &pi);
+    int return_code = calculate_pi(num_of_threads, &pi);
     if (return_code != SUCCESS_CODE) {
-	print_error(return_code, "join thread");
-        exit(EXIT_FAILURE); 
+	exit(EXIT_FAILURE);
     }
 
-    // free memory
-    free(threads_id);
-    free(threads_args);    
-
-    pi = pi * 4.0;
     printf("pi done - %.15g \n", pi);    
     
     exit(EXIT_SUCCESS);
