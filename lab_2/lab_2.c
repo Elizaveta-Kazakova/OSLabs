@@ -10,8 +10,8 @@
 #define PARENT_MESSAGE "Main thread"
 
 struct print_args {
-        char *message;
-        int num_of_str;
+    char *message;
+    int num_of_str;
 };
 
 
