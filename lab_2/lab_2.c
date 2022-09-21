@@ -30,7 +30,7 @@ int main() {
     struct print_args args_for_child;
     args_for_child.message = CHILD_MESSAGE;
     args_for_child.num_of_str = NUM_OF_STR;
-    return_code = pthread_create(&thread_id, NULL, &print_n_str, (void *)&args_for_child);
+    return_code = pthread_create(&thread_id, NULL, print_n_str, (void *)&args_for_child);
     if (return_code != SUCCESS_CODE) {
         char buf[BUF_SIZE];
 	strerror_r(return_code, buf, sizeof buf);
