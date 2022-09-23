@@ -50,10 +50,13 @@ int create_threads_for_partial_sum(int num_of_threads, pthread_t *threads_id,
 						 partial_sum_args *threads_args) {
     int iteration_num_for_thread = NUM_OF_STEPS / num_of_threads;
     int num_of_additional_iterations = NUM_OF_STEPS % num_of_threads;
+    // give each thread its indexes for calculations
     for (int thread_num = 0; thread_num < num_of_threads; ++thread_num) {
         threads_args[thread_num].start_index = thread_num * iteration_num_for_thread; 
         threads_args[thread_num].end_index = threads_args[thread_num].start_index
 								 + iteration_num_for_thread;
+	// distribute additional iterations between the first n threads, 
+	// where n is the number of additional iterations
 	if (thread_num < num_of_additional_iterations) { 
              ++threads_args[thread_num].end_index;
 	}
@@ -79,10 +82,12 @@ int is_valid_input(int num_of_args, char *arg) {
     }
     char *endptr;
     long num_of_threads = strtol(arg, &endptr, BASE);
+    // if there are invalid characters endptr will contain them
     if (*endptr != TERMINATING_SYMBOL_OF_STR) {
 	printf(MESSAGE_FOR_INVALID_ARG);
 	return ERROR_CODE;
     }
+
     if (num_of_threads < MIN_NUM_OF_THREADS || num_of_threads > MAX_NUM_OF_THREADS) {
         printf(MESSAGE_FOR_INVALID_RANGE_OF_ARG);
         return ERROR_CODE;
