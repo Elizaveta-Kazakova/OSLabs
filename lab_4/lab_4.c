@@ -9,7 +9,6 @@
 #define SUCCESS_CODE 0
 #define TIME_TO_SLEEP 2
 #define INTERVAL_FOR_PRINTING 1
-#define SLEEP_ERROR "The sleep call was interrupted by a signal handler\n"
 
 void *print_n_str(void *arg) {
     int second_number = 0;
@@ -37,7 +36,7 @@ int main() {
     }
     unsigned int sleep_return_value = sleep(TIME_TO_SLEEP);
     if (sleep_return_value != SUCCESS_CODE) {
-        fprintf(stderr, "%s", SLEEP_ERROR);
+        perror("sleep error");
         exit(EXIT_FAILURE);
     }
     return_code = pthread_cancel(thread_id);

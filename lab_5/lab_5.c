@@ -11,7 +11,6 @@
 #define STR_FOR_TERMINATED_THREAD "Thread terminated!\n"
 #define NOT_TO_EXECUTE_FUNCTION 0
 #define INTERVAL_FOR_PRINTING 1
-#define SLEEP_ERROR "The sleep call was interrupted by a signal handler\n"
 
 void print_str(void *arg) {
     printf("%s", (char *)arg);
@@ -45,7 +44,7 @@ int main() {
     }
     unsigned int sleep_return_value = sleep(TIME_TO_SLEEP);
     if (sleep_return_value != SUCCESS_CODE) {
-        fprintf(stderr, "%s", SLEEP_ERROR);
+        perror("sleep error");
         exit(EXIT_FAILURE);
     }
     return_code = pthread_cancel(thread_id);
