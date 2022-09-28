@@ -82,7 +82,7 @@ int is_valid_input(int num_of_args, char *arg) {
     }
     char *endptr;
     long num_of_threads = strtol(arg, &endptr, BASE);
-    // if there are invalid characters endptr will contain them
+    // if there are invalid characters endptr will contain first of them
     if (*endptr != TERMINATING_SYMBOL_OF_STR) {
 	printf(MESSAGE_FOR_INVALID_ARG);
 	return ERROR_CODE;
