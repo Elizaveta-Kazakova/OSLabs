@@ -20,28 +20,37 @@
 typedef struct partial_sum_args {
     int start_index;
     int end_index;
-    double result;
+    //double result;
 } partial_sum_args;
 
 void *calc_partial_sum(void *arg) {
     partial_sum_args *args = (partial_sum_args *)arg;
-    double partial_sum = 0;
-    for (int i = args->start_index; i < args->end_index; ++i) {
-        partial_sum += 1.0 / (i * 4.0 + 1.0);
-        partial_sum -= 1.0 / (i * 4.0 + 3.0);
+    double *partial_sum = (double *)malloc(sizeof(double));
+    if (partial_sum == NULL) {
+	perror("malloc error");
+	pthread_exit(partial_sum);
     }
-    args->result = partial_sum;
-    return NULL;
+    for (int i = args->start_index; i < args->end_index; ++i) {
+        *partial_sum += 1.0 / (i * 4.0 + 1.0);
+        *partial_sum -= 1.0 / (i * 4.0 + 3.0);
+    }
+    //args->result = partial_sum;
+    pthread_exit(partial_sum);
 }
 
 int join_threads_with_partial_sum(int num_of_threads, pthread_t *threads_id,
-						 partial_sum_args *threads_args, double *sum) {
+						 		 double *sum) {
     for (int thread_num = 0; thread_num < num_of_threads; ++thread_num) {
-        int return_code = pthread_join(threads_id[thread_num], NULL);
-        if (return_code != SUCCESS_CODE) {
+	void *partial_sum;
+        int return_code = pthread_join(threads_id[thread_num], &partial_sum);
+        if (partial_sum == NULL) {
+	    return ERROR_CODE;
+	}
+	if (return_code != SUCCESS_CODE) {
     	    return return_code;
 	}
-        *sum += threads_args[thread_num].result;
+        *sum += *(double *)partial_sum;
+	free(partial_sum);
     }
     return SUCCESS_CODE;
 }
@@ -115,7 +124,7 @@ int calculate_pi(int num_of_threads, double *pi) {
     *pi = 0;
    
     // join threads and sum partial sums
-    return_code = join_threads_with_partial_sum(num_of_threads, threads_id, threads_args, pi);
+    return_code = join_threads_with_partial_sum(num_of_threads, threads_id, pi);
     if (return_code != SUCCESS_CODE) {
         print_error(return_code, "join thread");
         return ERROR_CODE; 
