@@ -9,13 +9,13 @@
 #define CHILD_MESSAGE "New thread"
 #define PARENT_MESSAGE "Main thread"
 
-struct print_args {
+typedef struct print_args {
     char *message;
     int num_of_str;
-};
+} print_args;
 
 void *print_n_str(void *arg) {
-    struct print_args *args = (struct print_args *)arg;
+    print_args *args = (print_args *)arg;
     for (int str_number = 0; str_number < args->num_of_str; ++str_number) {
         printf("%s with %d number of string\n", args->message, str_number);
     }
@@ -25,7 +25,7 @@ void *print_n_str(void *arg) {
 int main() {
     int return_code;
     pthread_t thread_id;
-    struct print_args args_for_child;
+    print_args args_for_child;
     args_for_child.message = CHILD_MESSAGE;
     args_for_child.num_of_str = NUM_OF_STR;
     return_code = pthread_create(&thread_id, NULL, print_n_str, (void *)&args_for_child);
@@ -35,7 +35,7 @@ int main() {
 	fprintf(stderr, "creating thread : %s\n", buf);
 	exit(EXIT_FAILURE); 
     }
-    struct print_args args_for_parent;
+    print_args args_for_parent;
     args_for_parent.message = PARENT_MESSAGE;
     args_for_parent.num_of_str = NUM_OF_STR;
     print_n_str((void *)&args_for_parent);
