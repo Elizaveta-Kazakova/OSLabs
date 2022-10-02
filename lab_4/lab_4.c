@@ -7,15 +7,13 @@
 
 #define BUF_SIZE 1024
 #define SUCCESS_CODE 0
+#define SLEEP_SUCCESS 0
 #define TIME_TO_SLEEP 2
-#define INTERVAL_FOR_PRINTING 1
+#define THREAD_MESSAGE "Thread working"
 
-void *print_n_str(void *arg) {
-    int second_number = 0;
+void *print_str_endlessly(void *arg) {
     while(true) {
-	printf("second number = %d\n", second_number);
-	++second_number;
-	sleep(INTERVAL_FOR_PRINTING);
+	printf("%s\n", (char *)arg);
     }
     return NULL;
 }
@@ -29,13 +27,13 @@ void print_error(int return_code, char *additional_message) {
 int main() {
     int return_code;
     pthread_t thread_id;
-    return_code = pthread_create(&thread_id, NULL, print_n_str, NULL);
+    return_code = pthread_create(&thread_id, NULL, print_str_endlessly, THREAD_MESSAGE);
     if (return_code != SUCCESS_CODE) {
         print_error(return_code, "creating thread");
         exit(EXIT_FAILURE);
     }
     unsigned int sleep_return_value = sleep(TIME_TO_SLEEP);
-    if (sleep_return_value != SUCCESS_CODE) {
+    if (sleep_return_value != SLEEP_SUCCESS) {
         perror("sleep error");
         exit(EXIT_FAILURE);
     }
