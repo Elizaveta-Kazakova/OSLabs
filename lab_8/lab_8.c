@@ -35,45 +35,45 @@ void *calc_partial_sum(void *arg) {
     pthread_exit(NULL);
 }
 
-void join_threads(pthread_t *threads_id, int start_index, int num_of_iterations) {
+void join_threads(pthread_t *thread_ids, int start_index, int num_of_iterations) {
     for (int thread_num = start_index; thread_num < start_index +
 							 num_of_iterations; ++thread_num) {
-        pthread_join(threads_id[thread_num], NULL);
+        pthread_join(thread_ids[thread_num], NULL);
     }
 }
 
-int join_threads_with_partial_sum(int num_of_threads, pthread_t *threads_id,
-						   partial_sum_args *threads_args, double *sum) {
+int join_threads_with_partial_sum(int num_of_threads, pthread_t *thread_ids,
+						   partial_sum_args *thread_args, double *sum) {
     for (int thread_num = 0; thread_num < num_of_threads; ++thread_num) {
-        int return_code = pthread_join(threads_id[thread_num], NULL);
+        int return_code = pthread_join(thread_ids[thread_num], NULL);
 	if (return_code != SUCCESS_CODE) {
-	    join_threads(threads_id, thread_num + 1, num_of_threads - (thread_num + 1));
+	    join_threads(thread_ids, thread_num + 1, num_of_threads - (thread_num + 1));
     	    return return_code;
 	}
-        *sum += threads_args[thread_num].result;
+        *sum += thread_args[thread_num].result;
     }
     return SUCCESS_CODE;
 }
 
-int create_threads_for_partial_sum(int num_of_threads, pthread_t *threads_id,
-						 partial_sum_args *threads_args) {
+int create_threads_for_partial_sum(int num_of_threads, pthread_t *thread_ids,
+						 partial_sum_args *thread_args) {
     int iteration_num_for_thread = NUM_OF_STEPS / num_of_threads;
     int num_of_additional_iterations = NUM_OF_STEPS % num_of_threads;
     
     // give each thread its indexes for calculations
     for (int thread_num = 0; thread_num < num_of_threads; ++thread_num) {
-        threads_args[thread_num].start_index = thread_num * iteration_num_for_thread; 
-        threads_args[thread_num].num_of_iterations = iteration_num_for_thread;
+        thread_args[thread_num].start_index = thread_num * iteration_num_for_thread; 
+        thread_args[thread_num].num_of_iterations = iteration_num_for_thread;
 
 	// distribute additional iterations between the first n threads, 
 	// where n is the number of additional iterations
 	if (thread_num < num_of_additional_iterations) { 
-             ++threads_args[thread_num].num_of_iterations;
+             ++thread_args[thread_num].num_of_iterations;
 	}
-        int return_code = pthread_create(&threads_id[thread_num], 
-                               NULL, calc_partial_sum, (void *)&threads_args[thread_num]); 
+        int return_code = pthread_create(&thread_ids[thread_num], 
+                               NULL, calc_partial_sum, (void *)&thread_args[thread_num]); 
 	if (return_code != SUCCESS_CODE) {
-	    join_threads(threads_id, INDEX_OF_FIRST_THREAD, thread_num);
+	    join_threads(thread_ids, INDEX_OF_FIRST_THREAD, thread_num);
             return return_code; 
         }
     }
@@ -84,13 +84,6 @@ void print_error(int return_code, char *additional_message) {
     char buf[BUF_SIZE];
     strerror_r(return_code, buf, sizeof buf);
     fprintf(stderr, "%s: %s\n", additional_message, buf);
-}
-
-void free_memory(pthread_t *threads_id, partial_sum_args *threads_args) {
-    free(threads_id);
-    free(threads_args);
-    threads_id = NULL;
-    threads_args = NULL;
 }
 
 int check_input(int num_of_args, char *arg) {
@@ -114,35 +107,25 @@ int check_input(int num_of_args, char *arg) {
 }
 
 int calculate_pi(int num_of_threads, double *pi) {
-    // allocation of memory
-    pthread_t *threads_id = (pthread_t *)malloc(num_of_threads * sizeof(pthread_t));
-    partial_sum_args *threads_args = (partial_sum_args *)malloc(num_of_threads
-                                                                 * sizeof(partial_sum_args));
-    if (threads_id == NULL || threads_args == NULL) {
-	free_memory(threads_id, threads_args);
-        perror("malloc error ");
-        return ERROR_CODE;
-    }   
-
+    
+    pthread_t thread_ids[num_of_threads];
+    partial_sum_args thread_args[num_of_threads];
+    
     // create threads and run functions
-    int return_code = create_threads_for_partial_sum(num_of_threads, threads_id, threads_args); 
+    int return_code = create_threads_for_partial_sum(num_of_threads, thread_ids, thread_args); 
     if (return_code != SUCCESS_CODE) {
         print_error(return_code, "creating thread");
-	free_memory(threads_id, threads_args);
         return ERROR_CODE; 
     }
 
     *pi = 0;
    
     // join threads and sum partial sums
-    return_code = join_threads_with_partial_sum(num_of_threads, threads_id, threads_args, pi);
+    return_code = join_threads_with_partial_sum(num_of_threads, thread_ids, thread_args, pi);
     if (return_code != SUCCESS_CODE) {
         print_error(return_code, "join thread");
-	free_memory(threads_id, threads_args);
         return ERROR_CODE; 
     }
-
-    free_memory(threads_id, threads_args);
 
     *pi = *pi * 4.0;
     return SUCCESS_CODE;

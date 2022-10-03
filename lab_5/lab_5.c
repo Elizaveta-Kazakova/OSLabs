@@ -5,6 +5,8 @@
 #include <stdbool.h>
 #include <unistd.h>
 
+// разное поведение при return и pthread_exit
+
 #define BUF_SIZE 1024
 #define SUCCESS_CODE 0
 #define TIME_TO_SLEEP 2
