@@ -47,7 +47,7 @@ int join_threads_with_partial_sum(int num_of_threads, pthread_t *threads_id,
     for (int thread_num = 0; thread_num < num_of_threads; ++thread_num) {
         int return_code = pthread_join(threads_id[thread_num], NULL);
 	if (return_code != SUCCESS_CODE) {
-	    join_threads(threads_id, thread_num + 1, num_of_threads);
+	    join_threads(threads_id, thread_num + 1, num_of_threads - (thread_num + 1));
     	    return return_code;
 	}
         *sum += threads_args[thread_num].result;
