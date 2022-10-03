@@ -32,7 +32,7 @@ void *calc_partial_sum(void *arg) {
         partial_sum -= 1.0 / (i * 4.0 + 3.0);
     }
     args->result = partial_sum;
-    pthread_exit(&args->result);
+    pthread_exit(NULL);
 }
 
 void join_threads(pthread_t *threads_id, int start_index, int num_of_iterations) {
@@ -43,15 +43,14 @@ void join_threads(pthread_t *threads_id, int start_index, int num_of_iterations)
 }
 
 int join_threads_with_partial_sum(int num_of_threads, pthread_t *threads_id,
-						   double *sum) {
+						   partial_sum_args *threads_args, double *sum) {
     for (int thread_num = 0; thread_num < num_of_threads; ++thread_num) {
-	double partial_sum = 0;
-        int return_code = pthread_join(threads_id[thread_num], (void *)&partial_sum);
+        int return_code = pthread_join(threads_id[thread_num], NULL);
 	if (return_code != SUCCESS_CODE) {
 	    join_threads(threads_id, thread_num + 1, num_of_threads - (thread_num + 1));
     	    return return_code;
 	}
-        *sum += partial_sum;
+        *sum += threads_args[thread_num].result;
     }
     return SUCCESS_CODE;
 }
@@ -136,7 +135,7 @@ int calculate_pi(int num_of_threads, double *pi) {
     *pi = 0;
    
     // join threads and sum partial sums
-    return_code = join_threads_with_partial_sum(num_of_threads, threads_id, pi);
+    return_code = join_threads_with_partial_sum(num_of_threads, threads_id, threads_args, pi);
     if (return_code != SUCCESS_CODE) {
         print_error(return_code, "join thread");
 	free_memory(threads_id, threads_args);
