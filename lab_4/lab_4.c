@@ -5,11 +5,6 @@
 #include <stdbool.h>
 #include <unistd.h>
 
-// почему на самом деле несколько дольше проходит время 
-// что вносит вклад в увеличение времени
-// cancel не причем	
-// время если при старте одну строчку и при вызоде будет примерно 2 секунды  так 4
-
 #define BUF_SIZE 1024
 #define SUCCESS_CODE 0
 #define SLEEP_SUCCESS 0
@@ -18,9 +13,11 @@
 
 void *print_str_endlessly(void *arg) {
     while(true) {
+	pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, NULL);
 	printf("%s\n", (char *)arg);
+	pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
+	pthread_testcancel();
     }
-    return NULL;
 }
 
 void print_error(int return_code, char *additional_message) {
