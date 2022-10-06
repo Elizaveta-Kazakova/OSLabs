@@ -44,11 +44,16 @@ int main() {
         print_error(return_code, "cancelling thread");
         exit(EXIT_FAILURE);
     }
-    return_code = pthread_join(thread_id, NULL);
+    void *thread_return_value;
+    return_code = pthread_join(thread_id, &thread_return_value);
      if (return_code != SUCCESS_CODE) {
         print_error(return_code, "joining thread");
         exit(EXIT_FAILURE);
     }
+    if (thread_return_value != PTHREAD_CANCELED) {
+	printf("Thread was not canceled!\n");
+    }
+
     exit(EXIT_SUCCESS);
 }
 
