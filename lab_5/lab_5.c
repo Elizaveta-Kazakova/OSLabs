@@ -5,29 +5,27 @@
 #include <stdbool.h>
 #include <unistd.h>
 
-// разное поведение при return и pthread_exit
-
 #define BUF_SIZE 1024
 #define SUCCESS_CODE 0
 #define TIME_TO_SLEEP 2
 #define STR_FOR_TERMINATED_THREAD "Thread terminated!\n"
 #define NOT_TO_EXECUTE_FUNCTION 0
 #define INTERVAL_FOR_PRINTING 1
+#define THREAD_MESSAGE "Thread working"
 
 void print_str(void *arg) {
     printf("%s", (char *)arg);
 }
 
-void *print_n_str(void *arg) {
+void *print_str_endlessly(void *arg) {
     pthread_cleanup_push(print_str, STR_FOR_TERMINATED_THREAD);
-    int second_number = 0;
     while(true) {
-	printf("second number = %d\n", second_number);
-	++second_number;
-	sleep(INTERVAL_FOR_PRINTING);
+	pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, NULL);
+	printf("%s\n", (char *)arg);
+	pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
+	pthread_testcancel();
     }
     pthread_cleanup_pop(NOT_TO_EXECUTE_FUNCTION);
-    return NULL;
 }
 
 void print_error(int return_code, char *additional_message) {
@@ -39,7 +37,7 @@ void print_error(int return_code, char *additional_message) {
 int main() {
     int return_code;
     pthread_t thread_id;
-    return_code = pthread_create(&thread_id, NULL, print_n_str, NULL);
+    return_code = pthread_create(&thread_id, NULL, print_str_endlessly, THREAD_MESSAGE);
     if (return_code != SUCCESS_CODE) {
         print_error(return_code, "creating thread");
         exit(EXIT_FAILURE);
