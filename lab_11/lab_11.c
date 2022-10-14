@@ -70,12 +70,12 @@ int init_mutexes(pthread_mutex_t *mutexes, int num_of_mutexes) {
     pthread_mutexattr_t mutex_attr; 
     int return_code = pthread_mutexattr_init(&mutex_attr);
     if (return_code != SUCCESS_CODE) {
-            return ERROR_CODE;
+        return return_code;
     }
     return_code = pthread_mutexattr_settype(&mutex_attr, PTHREAD_MUTEX_ERRORCHECK);
     if (return_code != SUCCESS_CODE) {
-	    pthread_mutexattr_destroy(&mutex_attr);
-            return ERROR_CODE;
+	pthread_mutexattr_destroy(&mutex_attr);
+        return return_code;
     }
 
     for (int mutex_num = 0; mutex_num < num_of_mutexes; ++mutex_num) {  
@@ -83,7 +83,7 @@ int init_mutexes(pthread_mutex_t *mutexes, int num_of_mutexes) {
 	if (return_code != SUCCESS_CODE) {
 	    destroy_mutexes(mutexes, mutex_num);
 	    pthread_mutexattr_destroy(&mutex_attr);
-	    return ERROR_CODE;
+	    return return_code;
 	}
     }
 
@@ -101,6 +101,7 @@ int main() {
     int return_code;
     return_code = init_mutexes(mutexes, NUM_OF_MUTEXES);
     if (return_code != SUCCESS_CODE) {
+	print_error(return_code, "initializing mutexes");
 	exit(EXIT_FAILURE);
     }
     pthread_t thread_id;
