@@ -53,7 +53,7 @@ void *print_n_str(void *arg) {
     return NULL;
 }
 
-int init_semaphores(sem_t *semaphores, int num_of_semaphores, int *initial_value_of_semaphores) {
+int init_semaphores(sem_t *semaphores, int num_of_semaphores, unsigned int *initial_value_of_semaphores) {
     int return_code;
      for (int sem_num = 0; sem_num < num_of_semaphores; ++sem_num) {  
 	return_code = sem_init(&semaphores[sem_num], SHARED_BETWEEN_THREADS_OF_A_PROCCESS, 
@@ -74,7 +74,7 @@ void print_error(int return_code, char *additional_message) {
 
 int main() {
     int return_code;
-    int initial_value_of_semaphores[] = {INITIAL_VALUE_OF_FISRT_SEM, INITIAL_VALUE_OF_SECOND_SEM};
+    unsigned int initial_value_of_semaphores[] = {INITIAL_VALUE_OF_FISRT_SEM, INITIAL_VALUE_OF_SECOND_SEM};
     return_code = init_semaphores(semaphores, NUM_OF_SEMAPHORES, initial_value_of_semaphores);
     if (return_code != SUCCESS_CODE) {
 	perror("initializing semaphores");
