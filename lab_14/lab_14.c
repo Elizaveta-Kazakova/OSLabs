@@ -81,20 +81,14 @@ int main() {
 	exit(EXIT_FAILURE);
     }
     pthread_t thread_id;
-    struct print_args args_for_child;
-    args_for_child.message = CHILD_MESSAGE;
-    args_for_child.num_of_str = NUM_OF_STR;
-    args_for_child.index_of_waiting_semaphore = SEMAPHORE_INDEX_FOR_CHILD;
+    struct print_args args_for_child = {CHILD_MESSAGE, NUM_OF_STR, SEMAPHORE_INDEX_FOR_CHILD};
     return_code = pthread_create(&thread_id, NULL, print_n_str, (void *)&args_for_child);
     if (return_code != SUCCESS_CODE) {
 	destroy_semaphores(semaphores, NUM_OF_SEMAPHORES);
         print_error(return_code, "creating thread");
         exit(EXIT_FAILURE);
     }
-    struct print_args args_for_parent;
-    args_for_parent.message = PARENT_MESSAGE;
-    args_for_parent.num_of_str = NUM_OF_STR;
-    args_for_parent.index_of_waiting_semaphore = SEMAPHORE_INDEX_FOR_PARENT;
+    struct print_args args_for_parent = {PARENT_MESSAGE, NUM_OF_STR, SEMAPHORE_INDEX_FOR_PARENT};
     print_n_str((void *)&args_for_parent);
     return_code = pthread_join(thread_id, NULL);
     if (return_code != SUCCESS_CODE) {
