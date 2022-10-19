@@ -23,7 +23,7 @@
 struct print_args {
     char *message;
     int num_of_str;
-    int index_of_waiting_semaphore;
+    int index_of_semaphore_to_wait;
 };
 
 sem_t semaphores[NUM_OF_SEMAPHORES];
@@ -42,12 +42,12 @@ int destroy_semaphores(sem_t *semaphores, int num_of_semaphores) {
 void *print_n_str(void *arg) {
     struct print_args *args = (struct print_args *)arg;
     int str_number = 0;
-    int index_of_waiting_semaphore = args->index_of_waiting_semaphore;
-    int index_of_posting_semaphore = (index_of_waiting_semaphore + 1) % (NUM_OF_SEMAPHORES);
+    int index_of_semaphore_to_wait = args->index_of_semaphore_to_wait;
+    int index_of_semaphore_to_post = (index_of_semaphore_to_wait + 1) % (NUM_OF_SEMAPHORES);
     while (str_number < args->num_of_str) {
-        sem_wait(&semaphores[index_of_waiting_semaphore]);
+        sem_wait(&semaphores[index_of_semaphore_to_wait]);
 	printf("%s with %d number of string\n", args->message, str_number);
-	sem_post(&semaphores[index_of_posting_semaphore]);
+	sem_post(&semaphores[index_of_semaphore_to_post]);
         ++str_number;
     }
     return NULL;
