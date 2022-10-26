@@ -36,12 +36,11 @@ struct destroy_args {
 sem_t semaphores[NUM_OF_SEMAPHORES];
 
 void destroy_semaphores(void *arg) {
-    int return_code;
     struct destroy_args *args = (struct destroy_args *)arg;
     args->destroy_res = SUCCESS_CODE;
     for (int sem_num = 0; sem_num < args->num_of_semaphores; ++sem_num) {  
 	int return_code = sem_destroy(&args->semaphores[sem_num]);
-	if (return_code != SUCCESS_CODE && args->destroy_res == SUCCESS_CODE) {
+	if (return_code != SUCCESS_CODE) {
 	    args->destroy_res = return_code;
 	}
     }
@@ -58,14 +57,14 @@ void *print_n_str(void *arg) {
 	if (return_code != SUCCESS_CODE) {
 	    perror("waiting for a semaphore");
 	    pthread_cancel(args->another_thread_id);
-	    break;
+	    return NULL;
 	}
 	printf("%s with %d number of string\n", args->message, str_number);
 	return_code = sem_post(&semaphores[index_of_semaphore_to_post]);
 	if (return_code != SUCCESS_CODE) {
             perror("posting semaphore");
             pthread_cancel(args->another_thread_id);
-	    break;
+	    return NULL;
         }
         ++str_number;
     }
@@ -78,7 +77,7 @@ int init_semaphores(sem_t *semaphores, int num_of_semaphores, unsigned int *init
 	return_code = sem_init(&semaphores[sem_num], SHARED_BETWEEN_THREADS_OF_A_PROCCESS, 
 							initial_value_of_semaphores[sem_num]);
 	if (return_code != SUCCESS_CODE) {
-	    struct destroy_args args_for_destroy= {semaphores, sem_num};
+	    struct destroy_args args_for_destroy = {semaphores, sem_num};
 	    destroy_semaphores((void *)&args_for_destroy);
 	    return return_code;
 	}
