@@ -129,9 +129,9 @@ int main() {
 	exit(EXIT_FAILURE);
     }
 
-    struct print_args args_for_parent_process = {FIRST_PROC_MESSAGE, NUM_OF_STR,
+    struct print_args args_for_first_process = {FIRST_PROC_MESSAGE, NUM_OF_STR,
 							 SEMAPHORE_INDEX_FOR_FIRST_PROCESS};
-    return_code = print_n_str((void *)&args_for_parent_process);
+    return_code = print_n_str((void *)&args_for_first_process);
     if (return_code != SUCCESS_CODE) {
 	destroy_semaphores(semaphores, semaphore_names, NUM_OF_SEMAPHORES);
         exit(EXIT_FAILURE);
