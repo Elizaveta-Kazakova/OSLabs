@@ -102,10 +102,10 @@ int destroy_semaphores(sem_t **semaphores, char **semaphore_names, int num_of_se
     return destroy_res;
 }
 
-int init_semaphores(sem_t **semaphores, int num_of_semaphores, unsigned int *initial_value_of_semaphores, 
+int init_semaphores(sem_t **semaphores, int num_of_semaphores, unsigned int *initial_value_of_semaphores,
 				char **semaphore_names) {
-    for (int sem_num = 0; sem_num < num_of_semaphores; ++sem_num) {  
-	semaphores[sem_num] = sem_open(semaphore_names[sem_num], O_CREAT, S_IRWXO | S_IRWXG | S_IRWXU, 
+    for (int sem_num = 0; sem_num < num_of_semaphores; ++sem_num) {
+	semaphores[sem_num] = sem_open(semaphore_names[sem_num], O_CREAT, S_IRWXO | S_IRWXG | S_IRWXU,
 							initial_value_of_semaphores[sem_num]);
 	if (semaphores[sem_num] == SEM_FAILED) {
 	    destroy_semaphores(semaphores, semaphore_names, sem_num);
@@ -122,7 +122,7 @@ int main() {
     unsigned int initial_value_of_semaphores[] = {INITIAL_VALUE_OF_FISRT_SEM,
 							 INITIAL_VALUE_OF_SECOND_SEM};
     char *semaphore_names[] = {FIRST_SEMAPHORE_NAME, SECOND_SEMAPHORE_NAME};
-    return_code = init_semaphores(semaphores, NUM_OF_SEMAPHORES, initial_value_of_semaphores, 
+    return_code = init_semaphores(semaphores, NUM_OF_SEMAPHORES, initial_value_of_semaphores,
 					semaphore_names);
     if (return_code != SUCCESS_CODE) {
 	perror("open semaphores");

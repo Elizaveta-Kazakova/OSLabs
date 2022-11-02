@@ -81,10 +81,10 @@ int print_n_str(void *arg) {
     return SUCCESS_CODE;
 }
 
-int init_semaphores(sem_t **semaphores, int num_of_semaphores, unsigned int *initial_value_of_semaphores, 
+int init_semaphores(sem_t **semaphores, int num_of_semaphores, unsigned int *initial_value_of_semaphores,
 				char **semaphore_names) {
-    for (int sem_num = 0; sem_num < num_of_semaphores; ++sem_num) {  
-	semaphores[sem_num] = sem_open(semaphore_names[sem_num], O_CREAT, S_IRWXO | S_IRWXG | S_IRWXU, 
+    for (int sem_num = 0; sem_num < num_of_semaphores; ++sem_num) {
+	semaphores[sem_num] = sem_open(semaphore_names[sem_num], O_CREAT, S_IRWXO | S_IRWXG | S_IRWXU,
 							initial_value_of_semaphores[sem_num]);
 	if (semaphores[sem_num] == SEM_FAILED) {
 	    close_semaphores(semaphores, sem_num);
@@ -101,13 +101,13 @@ int main() {
     unsigned int initial_value_of_semaphores[] = {INITIAL_VALUE_OF_FISRT_SEM,
 							 INITIAL_VALUE_OF_SECOND_SEM};
     char *semaphore_names[] = {FIRST_SEMAPHORE_NAME, SECOND_SEMAPHORE_NAME};
-    return_code = init_semaphores(semaphores, NUM_OF_SEMAPHORES, initial_value_of_semaphores, 
+    return_code = init_semaphores(semaphores, NUM_OF_SEMAPHORES, initial_value_of_semaphores,
 					semaphore_names);
     if (return_code != SUCCESS_CODE) {
 	perror("open semaphores");
 	exit(EXIT_FAILURE);
     }
-    struct print_args args_for_second_process = {SECOND_PROC_MESSAGE, NUM_OF_STR, 
+    struct print_args args_for_second_process = {SECOND_PROC_MESSAGE, NUM_OF_STR,
 							SEMAPHORE_INDEX_FOR_SECOND_PROCESS};
     return_code = print_n_str((void *)&args_for_second_process);
     if (return_code != SUCCESS_CODE) {
