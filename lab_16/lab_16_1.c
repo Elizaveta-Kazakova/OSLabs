@@ -12,18 +12,17 @@
 #define BUF_SIZE 1024
 #define SUCCESS_CODE 0
 #define ERROR_CODE 1
-#define CHILD_PROC_MESSAGE "Child process"
-#define PARENT_PROC_MESSAGE "Parent process"
+#define FIRST_PROC_MESSAGE "First process"
 #define NUM_OF_THREADS 2
 #define NUM_OF_SEMAPHORES 2
-#define SEMAPHORE_INDEX_FOR_PARENT_PROCESS 1
-#define SEMAPHORE_INDEX_FOR_CHILD_PROCESS 0
+#define SEMAPHORE_INDEX_FOR_FIRST_PROCESS 1
+#define SEMAPHORE_INDEX_FOR_SECOND_PROCESS 0
 #define INITIAL_VALUE_OF_FISRT_SEM 0
 #define INITIAL_VALUE_OF_SECOND_SEM 1
 #define FIRST_SEMAPHORE_NAME "/first-semaphore"
 #define SECOND_SEMAPHORE_NAME "/second-semaphore"
 #define CHILD_PROCESS 0
-#define WAIT_TIMEOUT_IN_SECONDS 10
+#define WAIT_TIMEOUT_IN_SECONDS 128
 
 struct print_args {
     char *message;
@@ -130,31 +129,8 @@ int main() {
 	exit(EXIT_FAILURE);
     }
 
-    pid_t pid = fork();
-    if (pid == ERROR_CODE) {
-	perror("fork");
-	destroy_semaphores(semaphores, semaphore_names, NUM_OF_SEMAPHORES);
-        exit(EXIT_FAILURE);
-    }
-
-    if (pid == CHILD_PROCESS) {
-	struct print_args args_for_child_process = {CHILD_PROC_MESSAGE, NUM_OF_STR, 
-							SEMAPHORE_INDEX_FOR_CHILD_PROCESS};
-        return_code = print_n_str((void *)&args_for_child_process);
-	if (return_code != SUCCESS_CODE) {
-	    close_semaphores(semaphores, NUM_OF_SEMAPHORES);
-	    exit(EXIT_FAILURE);
-	}
-	return_code = close_semaphores(semaphores, NUM_OF_SEMAPHORES);
-        if (return_code != SUCCESS_CODE) {
-            perror("close_semaphores");
-            exit(EXIT_FAILURE);
-        }
-	exit(EXIT_SUCCESS);
-    }
-
-    struct print_args args_for_parent_process = {PARENT_PROC_MESSAGE, NUM_OF_STR,
-							 SEMAPHORE_INDEX_FOR_PARENT_PROCESS};
+    struct print_args args_for_parent_process = {FIRST_PROC_MESSAGE, NUM_OF_STR,
+							 SEMAPHORE_INDEX_FOR_FIRST_PROCESS};
     return_code = print_n_str((void *)&args_for_parent_process);
     if (return_code != SUCCESS_CODE) {
 	destroy_semaphores(semaphores, semaphore_names, NUM_OF_SEMAPHORES);
