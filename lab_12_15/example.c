@@ -32,6 +32,12 @@ void destroy_mutexes(pthread_mutex_t *mutexes, int num_of_mutexes) {
     }
 }
 
+void print_error(int return_code, char *additional_message) {
+    char buf[BUF_SIZE];
+    strerror_r(return_code, buf, sizeof buf);
+    fprintf(stderr, "%s: %s\n", additional_message, buf);
+}
+
 void *print_n_str(void *arg) {
     struct print_args *args = (struct print_args *)arg;
     int str_number = 0;
@@ -39,24 +45,24 @@ void *print_n_str(void *arg) {
     while (str_number < args->num_of_str) {
 	int return_code = pthread_mutex_lock(&mutexes[index_of_using_mutex]);
 	if (return_code != SUCCESS_CODE) {
-	    perror("lock mutex");
+	    print_error(return_code, "lock mutex");
 	    return NULL;
 	}
         int next_index_of_mutex = (index_of_using_mutex + 1) % (NUM_OF_MUTEXES);
 	return_code = pthread_mutex_lock(&mutexes[next_index_of_mutex]);
 	if (return_code != SUCCESS_CODE) {
-            perror("lock mutex");
+            print_error(return_code, "lock mutex");
             return NULL;
         }
 	printf("%s with %d number of string\n", args->message, str_number);
         return_code = pthread_mutex_unlock(&mutexes[index_of_using_mutex]);
 	if (return_code != SUCCESS_CODE) {
-            perror("lock mutex");
+            print_error(return_code, "unlock mutex");
             return NULL;
         }
 	return_code = pthread_mutex_unlock(&mutexes[next_index_of_mutex]);
 	if (return_code != SUCCESS_CODE) {
-            perror("lock mutex");
+            print_error(return_code, "unlock_mutex");
             return NULL;
         }
         ++str_number;
@@ -87,12 +93,6 @@ int init_mutexes(pthread_mutex_t *mutexes, int num_of_mutexes) {
 
     pthread_mutexattr_destroy(&mutex_attr);
     return SUCCESS_CODE;
-}
-
-void print_error(int return_code, char *additional_message) {
-    char buf[BUF_SIZE];
-    strerror_r(return_code, buf, sizeof buf);
-    fprintf(stderr, "%s: %s\n", additional_message, buf);
 }
 
 int main() {
