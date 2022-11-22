@@ -6,11 +6,17 @@
 #define BUF_SIZE 1024
 #define SUCCESS_CODE 0
 #define NUM_OF_THREADS 4
+#define NUM_OF_STR 4
+
+typedef struct print_message_args {
+    char **message;
+    int num_of_strings;
+} print_message_args;
 
 void *print_message(void *arg) {
-    char **message = (char **)arg;
-    for (int str_num = 0; message[str_num] != NULL; ++str_num) {
-	printf("%s", message[str_num]);
+    print_message_args *args = (print_message_args *)arg;
+    for (int str_num = 0; str_num < args->num_of_strings; ++str_num) {
+	printf("%s", args->message[str_num]);
     }
     return NULL;
 }
@@ -24,14 +30,17 @@ void print_error(int return_code, char *additional_message) {
 int main() {
     int return_code;
     pthread_t threads_id[NUM_OF_THREADS];
-    char *messages[][NUM_OF_THREADS] = {
-	{"Thread number 1, line 1\n", "Thread number 1, line 2\n", "Thread number 1, line 3\n", NULL},
-	{"Thread number 2, line 1\n", "Thread number 2, line 2\n", "Thread number 2, line 3\n", NULL},
-	{"Thread number 3, line 1\n", "Thread number 3, line 2\n", "Thread number 3, line 3\n", NULL},
-	{"Thread number 4, line 1\n", "Thread number 4, line 2\n", "Thread number 4, line 3\n", NULL}
+    char *messages[NUM_OF_STR][NUM_OF_THREADS] = {
+	{"Thread number 1, line 1\n", "Thread number 1, line 2\n", "Thread number 1, line 3\n", "Thread number 1, line 4\n"},
+	{"Thread number 2, line 1\n", "Thread number 2, line 2\n", "Thread number 2, line 3\n", "Thread number 2, line 4\n"},
+	{"Thread number 3, line 1\n", "Thread number 3, line 2\n", "Thread number 3, line 3\n", "Thread number 3, line 4\n"},
+	{"Thread number 4, line 1\n", "Thread number 4, line 2\n", "Thread number 4, line 3\n", "Thread number 4, line 4\n"}
 	};
+    print_message_args message_args[NUM_OF_THREADS];
     for (int thread_num = 0; thread_num < NUM_OF_THREADS; ++thread_num) {
-	return_code = pthread_create(&threads_id[thread_num], NULL, print_message, &messages[thread_num]);
+	message_args[thread_num].message = messages[thread_num];
+	message_args[thread_num].num_of_strings = NUM_OF_STR;
+	return_code = pthread_create(&threads_id[thread_num], NULL, print_message, (void *)&message_args[thread_num]);
     	if (return_code != SUCCESS_CODE) {
             print_error(return_code, "creating thread");
 	}
