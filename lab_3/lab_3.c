@@ -41,7 +41,7 @@ void print_error(int return_code, char *additional_message) {
 int main() {
     int return_code;
     pthread_t thread_ids[NUM_OF_THREADS];
-    char *messages[NUM_OF_STR][NUM_OF_THREADS] = {
+    char *messages[NUM_OF_THREADS][NUM_OF_STR] = {
 	{"Thread number 1, line 1\n", "Thread number 1, line 2\n", "Thread number 1, line 3\n", "Thread number 1, line 4\n"},
 	{"Thread number 2, line 1\n", "Thread number 2, line 2\n", "Thread number 2, line 3\n", "Thread number 2, line 4\n"},
 	{"Thread number 3, line 1\n", "Thread number 3, line 2\n", "Thread number 3, line 3\n", "Thread number 3, line 4\n"},
