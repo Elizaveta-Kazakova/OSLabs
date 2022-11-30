@@ -42,9 +42,8 @@ void free_paths(Paths *paths);
 int free_dir_resources(Paths *paths, DIR *dir_stream);
 int create_new_paths(Paths *old_path, char *new_name_in_path, Paths **new_path);
 void *copy_regular_file(void *args);
-int join_threads(pthread_t *thread_ids, int num_of_threads);
 void *copy_directory(void *args);
-int create_thread_by_file_stat(struct stat file_stat, Paths *next_path, Thread_ids *thread_ids);
+int create_thread_by_file_stat(struct stat file_stat, Paths *next_path);
 void print_error(int return_code, char *additional_message);
 int cp_r(char **argv);
 
@@ -70,7 +69,6 @@ int create_paths(Paths *paths, char *src, char *dest) {
 int add_name_in_path(char *old_path, char *new_name_in_path, char **result) {
     size_t len_new_path = strlen(old_path) + strlen(new_name_in_path) 
         + NULL_TERMINATOR_SIZE + PATH_DELIMITER_SIZE;
-    printf("malloc for path: %s/%s\n", old_path, new_name_in_path);
     *result = malloc(len_new_path * sizeof(char));
     if (*result == NULL) {
 	return ERROR_CODE;
@@ -82,7 +80,6 @@ int add_name_in_path(char *old_path, char *new_name_in_path, char **result) {
 }
 
 void free_paths(Paths *paths) {
-    printf("free paths: src- %s, dest- %s\n", paths->src, paths->dest);
     free(paths->src);
     free(paths->dest);
     paths->src = NULL;
@@ -107,7 +104,6 @@ int free_file_resourcces(Paths *paths, int src_fd, int dest_fd) {
     int close_dest_code = close(dest_fd);
     free_paths(paths);
     if (close_src_code != SUCCESS_CODE || close_dest_code != SUCCESS_CODE) {
-	printf("src code %d, dest code %d\n", close_src_code, close_dest_code);
 	perror("close file");
 	return ERROR_CODE;
     }
@@ -144,7 +140,6 @@ int create_new_paths(Paths *old_path, char *new_name_in_path, Paths **new_path) 
 }
 
 void *copy_regular_file(void *args) {
-    printf("copy file\n");
     Paths *paths = (Paths *)args;
 
     int src_fd = open(paths->src, O_RDONLY);
@@ -153,7 +148,6 @@ void *copy_regular_file(void *args) {
 	free_paths(paths);
 	return NULL;
     }
-    printf("dest path: %s\nsrc path: %s\n", paths->dest, paths->src);
     int dest_fd = open(paths->dest, O_WRONLY | O_CREAT | O_EXCL, MODE);
     if (dest_fd == ERROR_CODE) {
 	perror("open dest");
@@ -165,7 +159,6 @@ void *copy_regular_file(void *args) {
     char buf[BUFSIZ];
     int bytes_read = read(src_fd, buf, BUFSIZ);
     while (bytes_read > 0) {
-	//printf("bytes_read = %d\n", bytes_read);
 	int bytes_write = write(dest_fd, buf, BUFSIZ);
 	if (bytes_write == ERROR_CODE) {
 	    perror("write");
@@ -184,41 +177,7 @@ void *copy_regular_file(void *args) {
     return NULL;
 }
 
-int join_threads(pthread_t *thread_ids, int num_of_threads) {
-    int join_code = SUCCESS_CODE;
-    for (int thread_num = 0; thread_num < num_of_threads; ++thread_num) {
-	int return_code = pthread_join(thread_ids[thread_num], NULL);
-	if (return_code != SUCCESS_CODE && join_code == SUCCESS_CODE) {
-	    join_code = return_code;
-	}
-    }
-    return join_code;
-}
-
-int create_thread_ids(Thread_ids *thread_ids) {
-    thread_ids->ids = malloc(THREADS_BUF_SIZE * sizeof(pthread_t));
-    if (thread_ids->ids == NULL) {
-	perror("malloc");
-	return ERROR_CODE;
-    }
-    thread_ids->num_of_ids = 0;
-    return SUCCESS_CODE;
-}
-
-int set_thread_id(Thread_ids *thread_ids, pthread_t new_id) {
-    ++thread_ids->num_of_ids;
-    if (thread_ids->num_of_ids % THREADS_BUF_SIZE == REMAINDER_FOR_NEW_ALLOCATION) {
-	thread_ids->ids = realloc(thread_ids->ids, THREADS_BUF_SIZE * (thread_ids->num_of_ids / THREADS_BUF_SIZE + 1));
-	if (thread_ids->ids == NULL && errno == ENOMEM) {
-	    perror("malloc");
-	    return ERROR_CODE;
-	}
-    }
-    thread_ids->ids[thread_ids->num_of_ids - 1] = new_id;
-    return SUCCESS_CODE;
-}
-
-int create_thread_for_file(Paths *paths, struct dirent *next_directory_info, Thread_ids *thread_ids) {
+int create_thread_for_file(Paths *paths, struct dirent *next_directory_info) {
     Paths *next_path;
     int return_code = create_new_paths(paths, next_directory_info->d_name, &next_path);
     if (return_code != SUCCESS_CODE) {
@@ -231,7 +190,7 @@ int create_thread_for_file(Paths *paths, struct dirent *next_directory_info, Thr
         free_paths(next_path);
         return return_code;
     }
-    return_code = create_thread_by_file_stat(file_stat, next_path, thread_ids);
+    return_code = create_thread_by_file_stat(file_stat, next_path);
     if (return_code != SUCCESS_CODE) {
         free_paths(next_path);
         return return_code;
@@ -261,12 +220,6 @@ void *copy_directory(void *args) {
 	return NULL;
     }
 
-    Thread_ids thread_ids;
-    int return_code = create_thread_ids(&thread_ids);
-    if (return_code != SUCCESS_CODE) {
-	free_dir_resources(paths, dir_stream);
-	return NULL;
-    }
     errno = SUCCESS_CODE;
     struct dirent *next_directory_info = readdir(dir_stream);
     if (next_directory_info == NULL && errno != SUCCESS_CODE) {
@@ -277,16 +230,16 @@ void *copy_directory(void *args) {
     while (next_directory_info != NULL) {
  	if (strcmp(next_directory_info->d_name, LINK_TO_THIS_DIR) == EQUAL || strcmp(next_directory_info->d_name, DIR_LINK_ABOVE) == EQUAL) {
 	    errno = SUCCESS_CODE;
-            next_directory_info = readdir(dir_stream);
-            if (next_directory_info == NULL && errno != SUCCESS_CODE) {
+            int return_code = wait_for_next_file(dir_stream, &next_directory_info);
+            if (return_code != SUCCESS_CODE) {
 		perror("readdir");
 	    	closedir(dir_stream);
                 return NULL;
             }
             continue;
         }
-	printf("file name: %s\n", next_directory_info->d_name);
-	int return_code = create_thread_for_file(paths, next_directory_info, &thread_ids);
+
+	int return_code = create_thread_for_file(paths, next_directory_info);
 	if (return_code != SUCCESS_CODE) {
 	    return NULL;
 	}
@@ -298,47 +251,30 @@ void *copy_directory(void *args) {
         }
     }
     free_dir_resources(paths, dir_stream);
-    /*
-    return_code = join_threads(thread_ids.ids, thread_ids.num_of_ids);
-    if (return_code != SUCCESS_CODE) {
-	print_error(return_code, "joining threads");
-    }
-    */
     return NULL;
 }
 
-int create_thread_by_file_stat(struct stat file_stat, Paths *next_path, Thread_ids *thread_ids) {
+int create_thread_by_file_stat(struct stat file_stat, Paths *next_path) {
     pthread_t new_thread_id;
+    int return_code;
     if (S_ISREG(file_stat.st_mode)) {
-        int return_code = pthread_create(&new_thread_id, NULL, copy_regular_file, (void *)next_path); 
-	pthread_detach(new_thread_id);
-        if (return_code != SUCCESS_CODE) {
-	    print_error(return_code, "pthread_create");
-            return return_code;
-        }
-	//return_code = set_thread_id(thread_ids, new_thread_id);
-	//if (return_code != SUCCESS_CODE) {
-	//    return return_code;
-	//}
+        return_code = pthread_create(&new_thread_id, NULL, copy_regular_file, (void *)next_path); 
     }
     if (S_ISDIR(file_stat.st_mode)) { 
-	int return_code = mkdir(next_path->dest, MODE);
+	return_code = mkdir(next_path->dest, MODE);
         if (return_code != SUCCESS_CODE) {
             perror("mkdir");
             return ERROR_CODE;
         }
         return_code = pthread_create(&new_thread_id, NULL, copy_directory, (void *)next_path);
-	pthread_detach(new_thread_id);
-        if (return_code != SUCCESS_CODE) {
-	    print_error(return_code, "pthread_create");
-            return return_code;
-        }
-	//return_code = set_thread_id(thread_ids, new_thread_id);
-        //if (return_code != SUCCESS_CODE) {
-        //    return return_code;
-        //}
-
     }
+
+    if (return_code != SUCCESS_CODE) {
+        print_error(return_code, "pthread_create");
+        return return_code;
+    }
+
+    pthread_detach(new_thread_id);
     return SUCCESS_CODE;
 }
 
