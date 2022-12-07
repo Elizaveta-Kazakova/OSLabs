@@ -8,6 +8,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <errno.h>
+#include <libgen.h>
 
 #define NUM_OF_ARGS 3
 #define ERROR_CODE 1
@@ -25,6 +26,7 @@
 #define INDEX_FOR_DEST_PATH 2
 #define THREADS_BUF_SIZE 256
 #define REMAINDER_FOR_NEW_ALLOCATION 1
+#define MESSAGE_FOR_INVALID_ARGS_NUM "Please write two arguments: src and dest path\n"
 
 typedef struct Paths {
     char *src;
@@ -36,7 +38,7 @@ typedef struct Thread_ids {
     int num_of_ids;
 } Thread_ids;
 
-int create_paths(Paths *paths, char *src, char *dest);
+int create_paths(Paths **paths, char *src, char *dest);
 int add_name_in_path(char *old_path, char *new_name_in_path, char **result);
 void free_paths(Paths *paths);
 int free_dir_resources(Paths *paths, DIR *dir_stream);
@@ -47,22 +49,27 @@ int create_thread_by_file_stat(struct stat file_stat, Paths *next_path);
 void print_error(int return_code, char *additional_message);
 int cp_r(char **argv);
 
-int create_paths(Paths *paths, char *src, char *dest) {
-    size_t len_source_path = strlen(src);
-    size_t len_destination_path = strlen(dest);
-    paths->src = malloc(len_source_path * sizeof(char));
-    if (paths->src == NULL) {
-	free(paths);
-	return ERROR_CODE;
-    }
-    paths->dest = malloc(len_destination_path * sizeof(char));
-    if (paths->dest == NULL) {
-	free(paths);
-	free(paths->src);
+int create_paths(Paths **paths, char *src, char *dest) {
+    size_t len_source_path = strlen(src) + NULL_TERMINATOR_SIZE;
+    size_t len_destination_path = strlen(dest) + NULL_TERMINATOR_SIZE;
+    *paths = malloc(sizeof(Paths));
+    if (paths == NULL) {
         return ERROR_CODE;
     }
-    strncpy(paths->src, src, len_source_path);
-    strncpy(paths->dest, dest, len_destination_path);
+
+    (*paths)->src = malloc(len_source_path * sizeof(char));
+    if ((*paths)->src == NULL) {
+	free(*paths);
+	return ERROR_CODE;
+    }
+    (*paths)->dest = malloc(len_destination_path * sizeof(char));
+    if ((*paths)->dest == NULL) {
+	free(*paths);
+	free((*paths)->src);
+        return ERROR_CODE;
+    }
+    strncpy((*paths)->src, src, len_source_path);
+    strncpy((*paths)->dest, dest, len_destination_path);
     return SUCCESS_CODE;
 }
 
@@ -139,40 +146,69 @@ int create_new_paths(Paths *old_path, char *new_name_in_path, Paths **new_path) 
     return SUCCESS_CODE;
 }
 
+int wait_to_open_file(char *filename, int flags, mode_t mode, int *fd) {
+    int file_desc = open(filename, flags, mode);
+    errno = SUCCESS_CODE;
+
+    while (file_desc == ERROR_CODE && errno == EMFILE) {
+	sleep(1);
+        file_desc = open(filename, flags, mode);
+    }
+    if (file_desc == ERROR_CODE) {
+	return ERROR_CODE;
+    }
+
+    *fd = file_desc;
+    return SUCCESS_CODE;
+}
+
+int copy_bytes_from_fd(Paths *paths, int src_fd, int dest_fd) {
+    char buf[BUFSIZ];
+    int bytes_read = read(src_fd, buf, BUFSIZ);
+    while (bytes_read > 0) {
+        int bytes_write = write(dest_fd, buf, bytes_read);
+        if (bytes_write == ERROR_CODE) {
+            perror("write");
+            return ERROR_CODE;
+        }
+        bytes_read = read(src_fd, buf, BUFSIZ);
+    }
+    if (bytes_read == ERROR_CODE) {
+        perror("read");
+        return ERROR_CODE;
+    }
+    return SUCCESS_CODE;
+}
+
 void *copy_regular_file(void *args) {
     Paths *paths = (Paths *)args;
 
-    int src_fd = open(paths->src, O_RDONLY);
-    if (src_fd == ERROR_CODE) {
+    int src_fd;
+    int return_code = wait_to_open_file(paths->src, O_RDONLY, MODE, &src_fd);
+    if (return_code != SUCCESS_CODE) {
 	perror("open src");
 	free_paths(paths);
 	return NULL;
     }
-    int dest_fd = open(paths->dest, O_WRONLY | O_CREAT | O_EXCL, MODE);
-    if (dest_fd == ERROR_CODE) {
+
+    struct stat file_stat;
+    return_code = stat(paths->src, &file_stat);
+    if (return_code != SUCCESS_CODE) {
+        perror("stat");
+        free_paths(paths);
+	close(src_fd);
+        return NULL;
+    }
+    int dest_fd;
+    return_code = wait_to_open_file(paths->dest, O_WRONLY | O_CREAT | O_EXCL, file_stat.st_mode, &dest_fd);
+    if (return_code == ERROR_CODE) {
 	perror("open dest");
         free_paths(paths);
 	close(src_fd);
         return NULL;
     }
 
-    char buf[BUFSIZ];
-    int bytes_read = read(src_fd, buf, BUFSIZ);
-    while (bytes_read > 0) {
-	int bytes_write = write(dest_fd, buf, BUFSIZ);
-	if (bytes_write == ERROR_CODE) {
-	    perror("write");
-            free_file_resourcces(paths, src_fd, dest_fd);
-	    return NULL;
-        }
-	bytes_read = read(src_fd, buf, BUFSIZ);
-    }
-    if (bytes_read == ERROR_CODE) {
-        perror("write");
-        free_file_resourcces(paths, src_fd, dest_fd);
-        return NULL;
-    }
-
+    copy_bytes_from_fd(paths, src_fd, dest_fd);
     free_file_resourcces(paths, src_fd, dest_fd);
     return NULL;
 }
@@ -202,6 +238,7 @@ int wait_for_next_file(DIR *dir_stream, struct dirent **next_directory_info) {
     errno = SUCCESS_CODE;
     *next_directory_info = readdir(dir_stream);
     while (*next_directory_info == NULL && errno == EMFILE) {
+	sleep(1);
 	*next_directory_info = readdir(dir_stream);
     }
     if (*next_directory_info == NULL && errno != SUCCESS_CODE) {
@@ -221,8 +258,9 @@ void *copy_directory(void *args) {
     }
 
     errno = SUCCESS_CODE;
-    struct dirent *next_directory_info = readdir(dir_stream);
-    if (next_directory_info == NULL && errno != SUCCESS_CODE) {
+    struct dirent *next_directory_info;
+    int return_code = wait_for_next_file(dir_stream, &next_directory_info);
+    if (return_code != SUCCESS_CODE) {
 	perror("readdir");
 	free_dir_resources(paths, dir_stream);
         return NULL;
@@ -230,17 +268,18 @@ void *copy_directory(void *args) {
     while (next_directory_info != NULL) {
  	if (strcmp(next_directory_info->d_name, LINK_TO_THIS_DIR) == EQUAL || strcmp(next_directory_info->d_name, DIR_LINK_ABOVE) == EQUAL) {
 	    errno = SUCCESS_CODE;
-            int return_code = wait_for_next_file(dir_stream, &next_directory_info);
+            return_code = wait_for_next_file(dir_stream, &next_directory_info);
             if (return_code != SUCCESS_CODE) {
 		perror("readdir");
-	    	closedir(dir_stream);
+	    	free_dir_resources(paths, dir_stream);
                 return NULL;
             }
             continue;
         }
 
-	int return_code = create_thread_for_file(paths, next_directory_info);
+	return_code = create_thread_for_file(paths, next_directory_info);
 	if (return_code != SUCCESS_CODE) {
+	    free_dir_resources(paths, dir_stream);
 	    return NULL;
 	}
 	return_code = wait_for_next_file(dir_stream, &next_directory_info);
@@ -257,11 +296,15 @@ void *copy_directory(void *args) {
 int create_thread_by_file_stat(struct stat file_stat, Paths *next_path) {
     pthread_t new_thread_id;
     int return_code;
+    if (!S_ISREG(file_stat.st_mode) && !S_ISDIR(file_stat.st_mode)) {
+	return SUCCESS_CODE;
+    }
+
     if (S_ISREG(file_stat.st_mode)) {
         return_code = pthread_create(&new_thread_id, NULL, copy_regular_file, (void *)next_path); 
     }
     if (S_ISDIR(file_stat.st_mode)) { 
-	return_code = mkdir(next_path->dest, MODE);
+	return_code = mkdir(next_path->dest, file_stat.st_mode);
         if (return_code != SUCCESS_CODE) {
             perror("mkdir");
             return ERROR_CODE;
@@ -278,16 +321,56 @@ int create_thread_by_file_stat(struct stat file_stat, Paths *next_path) {
     return SUCCESS_CODE;
 }
 
+int get_file_stats(Paths *paths, struct stat *src_stat, struct stat *dest_stat) {
+    int return_code = stat(paths->src, src_stat);
+    if (return_code != SUCCESS_CODE) {
+        perror("src stat");
+        return return_code;
+    }
+    return_code = stat(paths->dest, dest_stat);
+    if (return_code != SUCCESS_CODE) {
+        perror("dst stat");
+        return return_code;
+    }
+    return SUCCESS_CODE;
+}
 
-int cp_r(char **argv) {
-    Paths *paths = malloc(sizeof(Paths));
-    if (paths == NULL) {
-	perror("malloc");
+int handle_input_paths(Paths **paths) {
+    struct stat src_stat;
+    struct stat dest_stat;
+    int return_code = get_file_stats(*paths, &src_stat, &dest_stat);
+    if (return_code != SUCCESS_CODE) {
+	return return_code;
+    }
+
+    if (S_ISDIR(src_stat.st_mode) && S_ISREG(dest_stat.st_mode)) {
+	printf("cannot overwrite non-directory %s with directory %s\n", (*paths)->dest, (*paths)->src);
 	return ERROR_CODE;
     }
-    int return_code = create_paths(paths, argv[INDEX_FOR_SRC_PATH], argv[INDEX_FOR_DEST_PATH]);
+
+    if (S_ISREG(src_stat.st_mode) && S_ISDIR(dest_stat.st_mode) || S_ISDIR(src_stat.st_mode) && S_ISDIR(dest_stat.st_mode)) {
+	char *new_dest_path;
+	return_code = add_name_in_path((*paths)->dest, basename((*paths)->src), &new_dest_path);
+        if (return_code != SUCCESS_CODE) {
+            return return_code;
+        }
+	free((*paths)->dest);
+	(*paths)->dest = new_dest_path;
+    }
+
+    return SUCCESS_CODE; 
+}
+
+int cp_r(char **argv) {
+    Paths *paths;
+    int return_code = create_paths(&paths, argv[INDEX_FOR_SRC_PATH], argv[INDEX_FOR_DEST_PATH]);
     if (return_code != SUCCESS_CODE) {
 	perror("create paths");
+	return return_code;
+    }
+    return_code = handle_input_paths(&paths);
+    if (return_code != SUCCESS_CODE) {
+	free_paths(paths);
 	return return_code;
     }
     struct stat file_stat;
@@ -297,13 +380,11 @@ int cp_r(char **argv) {
         free_paths(paths);
         return return_code;
     }
-
-    if (S_ISREG(file_stat.st_mode)) {
-	copy_regular_file((void *)paths);
-	return SUCCESS_CODE;
+    return_code = create_thread_by_file_stat(file_stat, paths);
+    if (return_code != SUCCESS_CODE) {
+	free_paths(paths);
+        return return_code;
     }
-    copy_directory(paths);
-
     return SUCCESS_CODE;
 }
 
@@ -316,7 +397,7 @@ void print_error(int return_code, char *additional_message) {
 int main(int argc, char **argv) {
     int return_code;
     if (argc != NUM_OF_ARGS) {
-	printf("Please write %d arguments", NUM_OF_ARGS);
+	printf(MESSAGE_FOR_INVALID_ARGS_NUM);
 	pthread_exit(NULL);
     }
 
