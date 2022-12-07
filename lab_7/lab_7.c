@@ -27,6 +27,7 @@
 #define THREADS_BUF_SIZE 256
 #define REMAINDER_FOR_NEW_ALLOCATION 1
 #define MESSAGE_FOR_INVALID_ARGS_NUM "Please write two arguments: src and dest path\n"
+#define NUM_OF_SECONDS_TO_WAIT_FILE 1
 
 typedef struct Paths {
     char *src;
@@ -151,7 +152,7 @@ int wait_to_open_file(char *filename, int flags, mode_t mode, int *fd) {
     errno = SUCCESS_CODE;
 
     while (file_desc == ERROR_CODE && errno == EMFILE) {
-	sleep(1);
+	sleep(NUM_OF_SECONDS_TO_WAIT_FILE);
         file_desc = open(filename, flags, mode);
     }
     if (file_desc == ERROR_CODE) {
@@ -238,7 +239,7 @@ int wait_for_next_file(DIR *dir_stream, struct dirent **next_directory_info) {
     errno = SUCCESS_CODE;
     *next_directory_info = readdir(dir_stream);
     while (*next_directory_info == NULL && errno == EMFILE) {
-	sleep(1);
+	sleep(NUM_OF_SECONDS_TO_WAIT_FILE);
 	*next_directory_info = readdir(dir_stream);
     }
     if (*next_directory_info == NULL && errno != SUCCESS_CODE) {
@@ -317,7 +318,12 @@ int create_thread_by_file_stat(struct stat file_stat, Paths *next_path) {
         return return_code;
     }
 
-    pthread_detach(new_thread_id);
+    return_code = pthread_detach(new_thread_id);
+    if (return_code != SUCCESS_CODE) {
+	print_error(return_code, "pthread detach");
+	return return_code;
+    }
+
     return SUCCESS_CODE;
 }
 
