@@ -34,11 +34,6 @@ typedef struct Paths {
     char *dest;
 } Paths;
 
-typedef struct Thread_ids {
-    pthread_t *ids;
-    int num_of_ids;
-} Thread_ids;
-
 int create_paths(Paths **paths, char *src, char *dest);
 int add_name_in_path(char *old_path, char *new_name_in_path, char **result);
 void free_paths(Paths *paths);
