@@ -38,7 +38,7 @@ int create_paths(Paths **paths, char *src, char *dest);
 int add_name_in_path(char *old_path, char *new_name_in_path, char **result);
 void free_paths(Paths *paths);
 int free_dir_resources(Paths *paths, DIR *dir_stream);
-int create_new_paths(Paths *old_path, char *new_name_in_path, Paths **new_path);
+int create_new_paths_from_old(Paths *old_path, char *new_name_in_path, Paths **new_path);
 void *copy_regular_file(void *args);
 void *copy_directory(void *args);
 int create_thread_by_file_stat(struct stat file_stat, Paths *next_path);
@@ -113,8 +113,8 @@ int free_file_resourcces(Paths *paths, int src_fd, int dest_fd) {
     return SUCCESS_CODE;
 }
 
-int create_new_paths(Paths *old_path, char *new_name_in_path, Paths **new_path) {
-    char *new_src_path; 
+int create_new_paths_from_old(Paths *old_path, char *new_name_in_path, Paths **new_path) {
+    char *new_src_path;
     int return_code = add_name_in_path(old_path->src, new_name_in_path, &new_src_path);
     if (return_code != SUCCESS_CODE) {
 	perror("add_name_in_path");
@@ -211,7 +211,7 @@ void *copy_regular_file(void *args) {
 
 int create_thread_for_file(Paths *paths, struct dirent *next_directory_info) {
     Paths *next_path;
-    int return_code = create_new_paths(paths, next_directory_info->d_name, &next_path);
+    int return_code = create_new_paths_from_old(paths, next_directory_info->d_name, &next_path);
     if (return_code != SUCCESS_CODE) {
         return return_code;
     }
