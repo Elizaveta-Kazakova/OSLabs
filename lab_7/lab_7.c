@@ -162,20 +162,28 @@ int wait_to_open_file(char *filename, int flags, mode_t mode, int *fd) {
 }
 
 int copy_bytes_from_fd(Paths *paths, int src_fd, int dest_fd) {
-    char buf[BUFSIZ];
-    int bytes_read = read(src_fd, buf, BUFSIZ);
+    void *buf = (void *) malloc(BUFSIZ);
+    if (buf == NULL) {
+        perror("malloc");
+        return ERROR_CODE;
+    }
+
+    ssize_t bytes_read = read(src_fd, buf, BUFSIZ);
     while (bytes_read > 0) {
-        int bytes_write = write(dest_fd, buf, bytes_read);
+        ssize_t bytes_write = write(dest_fd, buf, bytes_read);
         if (bytes_write == ERROR_CODE) {
             perror("write");
+	    free(buf);
             return ERROR_CODE;
         }
         bytes_read = read(src_fd, buf, BUFSIZ);
     }
     if (bytes_read == ERROR_CODE) {
         perror("read");
+	free(buf);
         return ERROR_CODE;
     }
+    free(buf);
     return SUCCESS_CODE;
 }
 
@@ -256,7 +264,7 @@ int create_directory_struct(char *path, struct dirent **next_directory_info) {
     }
 
     *next_directory_info = malloc(offsetof(struct dirent, d_name) + name_length + END_OF_LINE_SIZE);
-    if (next_directory_info == NULL) {
+    if (*next_directory_info == NULL) {
 	perror("malloc dirent");
 	return ERROR_CODE;
     }
