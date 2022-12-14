@@ -9,12 +9,14 @@
 #include <stdio.h>
 #include <errno.h>
 #include <libgen.h>
+#include <stddef.h>
 
 #define NUM_OF_ARGS 3
 #define ERROR_CODE 1
 #define SUCCESS_CODE 0
 #define INDEX_FOR_PATHNAME_OF_THE_SOURCE_TREE 0
 #define NULL_TERMINATOR_SIZE 1
+#define END_OF_LINE_SIZE 1
 #define PATH_DELIMITER "/"
 #define PATH_DELIMITER_SIZE 1
 #define MODE 0777
@@ -37,7 +39,7 @@ typedef struct Paths {
 int create_paths(Paths **paths, char *src, char *dest);
 int add_name_in_path(char *old_path, char *new_name_in_path, char **result);
 void free_paths(Paths *paths);
-int free_dir_resources(Paths *paths, DIR *dir_stream);
+int free_dir_resources(Paths *paths, DIR *dir_stream, struct dirent *dir_info);
 int create_new_paths_from_old(Paths *old_path, char *new_name_in_path, Paths **new_path);
 void *copy_regular_file(void *args);
 void *copy_directory(void *args);
@@ -91,8 +93,9 @@ void free_paths(Paths *paths) {
     paths = NULL;
 }
 
-int free_dir_resources(Paths *paths, DIR *dir_stream) {
+int free_dir_resources(Paths *paths, DIR *dir_stream, struct dirent *dir_info) {
     free_paths(paths);
+    free(dir_info);
     int return_code = closedir(dir_stream);
     if (return_code != SUCCESS_CODE) {
 	perror("closedir");
@@ -143,8 +146,8 @@ int create_new_paths_from_old(Paths *old_path, char *new_name_in_path, Paths **n
 }
 
 int wait_to_open_file(char *filename, int flags, mode_t mode, int *fd) {
-    int file_desc = open(filename, flags, mode);
     errno = SUCCESS_CODE;
+    int file_desc = open(filename, flags, mode);
 
     while (file_desc == ERROR_CODE && errno == EMFILE) {
 	sleep(NUM_OF_SECONDS_TO_WAIT_FILE);
@@ -230,44 +233,76 @@ int create_thread_for_file(Paths *paths, struct dirent *next_directory_info) {
     return SUCCESS_CODE;
 }
 
-int wait_for_next_file(DIR *dir_stream, struct dirent **next_directory_info) {
+int wait_for_open_dir(DIR **dir_stream, char *path) {
     errno = SUCCESS_CODE;
-    *next_directory_info = readdir(dir_stream);
-    while (*next_directory_info == NULL && errno == EMFILE) {
+    *dir_stream = opendir(path);
+
+    while (dir_stream == NULL && errno == EMFILE) {
 	sleep(NUM_OF_SECONDS_TO_WAIT_FILE);
-	*next_directory_info = readdir(dir_stream);
+	*dir_stream = opendir(path);
     }
-    if (*next_directory_info == NULL && errno != SUCCESS_CODE) {
+    if (dir_stream == NULL) {
 	return ERROR_CODE;
     }
+
     return SUCCESS_CODE;
+}
+
+int create_directory_struct(char *path, struct dirent **next_directory_info) {
+    long name_length = pathconf(path, _PC_NAME_MAX);
+    if (name_length == ERROR_CODE) {
+	perror("pathconf");
+	return ERROR_CODE;
+    }
+
+    *next_directory_info = malloc(offsetof(struct dirent, d_name) + name_length + END_OF_LINE_SIZE);
+    if (next_directory_info == NULL) {
+	perror("malloc dirent");
+	return ERROR_CODE;
+    }
+
+    return SUCCESS_CODE;
+}
+
+int create_dir_resources(DIR **dir_stream, struct dirent **next_directory_info, char *path) {
+    int return_code = wait_for_open_dir(dir_stream, path);
+    if (return_code != SUCCESS_CODE) {
+        perror("opendir");
+        return return_code;
+    }
+
+    return_code = create_directory_struct(path, next_directory_info);
+    if (return_code != SUCCESS_CODE) {
+	return ERROR_CODE;
+    }
+
 }
 
 void *copy_directory(void *args) {
     Paths *paths = (Paths *)args;
 
-    DIR *dir_stream = opendir(paths->src);
-    if (dir_stream == NULL) {
- 	perror("opendir");
+    DIR *dir_stream;
+    struct dirent *next_directory_info;
+    int return_code = create_dir_resources(&dir_stream, &next_directory_info, paths->src);
+    if (return_code != SUCCESS_CODE) {
 	free_paths(paths);
 	return NULL;
     }
 
-    errno = SUCCESS_CODE;
-    struct dirent *next_directory_info;
-    int return_code = wait_for_next_file(dir_stream, &next_directory_info);
+    struct dirent *result;
+    return_code = readdir_r(dir_stream, next_directory_info, &result);
     if (return_code != SUCCESS_CODE) {
 	perror("readdir");
-	free_dir_resources(paths, dir_stream);
+	free_dir_resources(paths, dir_stream, next_directory_info);
         return NULL;
     }
-    while (next_directory_info != NULL) {
+    while (result != NULL) {
  	if (strcmp(next_directory_info->d_name, LINK_TO_THIS_DIR) == EQUAL || strcmp(next_directory_info->d_name, DIR_LINK_ABOVE) == EQUAL) {
 	    errno = SUCCESS_CODE;
-            return_code = wait_for_next_file(dir_stream, &next_directory_info);
+            return_code = readdir_r(dir_stream, next_directory_info, &result);
             if (return_code != SUCCESS_CODE) {
 		perror("readdir");
-	    	free_dir_resources(paths, dir_stream);
+	    	free_dir_resources(paths, dir_stream, next_directory_info);
                 return NULL;
             }
             continue;
@@ -275,17 +310,17 @@ void *copy_directory(void *args) {
 
 	return_code = create_thread_for_file(paths, next_directory_info);
 	if (return_code != SUCCESS_CODE) {
-	    free_dir_resources(paths, dir_stream);
+	    free_dir_resources(paths, dir_stream, next_directory_info);
 	    return NULL;
 	}
-	return_code = wait_for_next_file(dir_stream, &next_directory_info);
+	return_code = readdir_r(dir_stream, next_directory_info, &result);
 	if (return_code != SUCCESS_CODE) {
 	    perror("readdir");
-	    free_dir_resources(paths, dir_stream);
+	    free_dir_resources(paths, dir_stream, next_directory_info);
             return NULL;
         }
     }
-    free_dir_resources(paths, dir_stream);
+    free_dir_resources(paths, dir_stream, next_directory_info);
     return NULL;
 }
 
