@@ -162,28 +162,21 @@ int wait_to_open_file(char *filename, int flags, mode_t mode, int *fd) {
 }
 
 int copy_bytes_from_fd(Paths *paths, int src_fd, int dest_fd) {
-    void *buf = (void *) malloc(BUFSIZ);
-    if (buf == NULL) {
-        perror("malloc");
-        return ERROR_CODE;
-    }
+    char buf[BUFSIZ];
 
     ssize_t bytes_read = read(src_fd, buf, BUFSIZ);
     while (bytes_read > 0) {
         ssize_t bytes_write = write(dest_fd, buf, bytes_read);
         if (bytes_write == ERROR_CODE) {
             perror("write");
-	    free(buf);
             return ERROR_CODE;
         }
         bytes_read = read(src_fd, buf, BUFSIZ);
     }
     if (bytes_read == ERROR_CODE) {
         perror("read");
-	free(buf);
         return ERROR_CODE;
     }
-    free(buf);
     return SUCCESS_CODE;
 }
 
