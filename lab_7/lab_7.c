@@ -283,7 +283,7 @@ int create_dir_resources(DIR **dir_stream, struct dirent **next_directory_info, 
     if (return_code != SUCCESS_CODE) {
 	return ERROR_CODE;
     }
-
+    return SUCCESS_CODE;
 }
 
 void *copy_directory(void *args) {
