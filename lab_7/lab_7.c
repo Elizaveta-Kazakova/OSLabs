@@ -220,7 +220,7 @@ int create_thread_for_file(Paths *paths, struct dirent *next_directory_info) {
         return return_code;
     }
     struct stat file_stat;
-    return_code = stat(next_path->src, &file_stat);
+    return_code = lstat(next_path->src, &file_stat);
     if (return_code != SUCCESS_CODE) {
         perror("stat");
         free_paths(next_path);
@@ -359,12 +359,12 @@ int create_thread_by_file_stat(struct stat file_stat, Paths *next_path) {
 }
 
 int get_file_stats(Paths *paths, struct stat *src_stat, struct stat *dest_stat) {
-    int return_code = stat(paths->src, src_stat);
+    int return_code = lstat(paths->src, src_stat);
     if (return_code != SUCCESS_CODE) {
         perror("src stat");
         return return_code;
     }
-    return_code = stat(paths->dest, dest_stat);
+    return_code = lstat(paths->dest, dest_stat);
     if (return_code != SUCCESS_CODE) {
         perror("dst stat");
         return return_code;
@@ -395,7 +395,7 @@ int handle_input_paths(Paths **paths) {
 	(*paths)->dest = new_dest_path;
     }
 
-    return SUCCESS_CODE; 
+    return SUCCESS_CODE;
 }
 
 int cp_r(char **argv) {
@@ -411,7 +411,7 @@ int cp_r(char **argv) {
 	return return_code;
     }
     struct stat file_stat;
-    return_code = stat(paths->src, &file_stat);
+    return_code = lstat(paths->src, &file_stat);
     if (return_code != SUCCESS_CODE) {
         perror("stat");
         free_paths(paths);
